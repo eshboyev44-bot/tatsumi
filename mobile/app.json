@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Tatsumi Chat",
+    "slug": "tatsumi-mobile",
+    "scheme": "tatsumi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": ["**/*"],
+    "plugins": ["expo-router"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tatsumi.chat"
+    },
+    "android": {
+      "package": "com.tatsumi.chat"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

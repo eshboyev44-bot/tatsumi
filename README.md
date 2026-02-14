@@ -40,6 +40,24 @@ npm run dev
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 4. Deploy qiling.
 
+## 4. Mobil (Expo iOS)
+
+Repo ichida `mobile/` papka boshlang'ich React Native Expo ilovasi sifatida qo'shildi.
+
+1. `mobile/env.example` ni `mobile/.env` ga ko'chiring.
+2. `mobile` ichida dependency o'rnating:
+
+```bash
+cd mobile
+npm install
+```
+
+3. iPhone (Expo Go) bilan ishga tushiring:
+
+```bash
+npm run start
+```
+
 ## Auth flow
 
 - `Sign up`: email + password + display name
