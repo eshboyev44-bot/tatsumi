@@ -29,56 +29,7 @@ function getInitialTheme(): ThemeMode {
     : "light";
 }
 
-function ThemeToggle({
-  onToggle,
-}: {
-  onToggle: () => void;
-}) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      onClick={onToggle}
-      className="liquid-panel absolute right-4 top-4 z-20 size-10 rounded-full text-[var(--muted-foreground)] md:right-6 md:top-6"
-      aria-label="Tema almashtirish"
-      title="Theme toggle"
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        className="theme-icon theme-icon--sun"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="4.5" />
-        <path d="M12 2v2.5" />
-        <path d="M12 19.5V22" />
-        <path d="M4.9 4.9l1.8 1.8" />
-        <path d="M17.3 17.3l1.8 1.8" />
-        <path d="M2 12h2.5" />
-        <path d="M19.5 12H22" />
-        <path d="M4.9 19.1l1.8-1.8" />
-        <path d="M17.3 6.7l1.8-1.8" />
-      </svg>
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        className="theme-icon theme-icon--moon"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M21 12.8A9 9 0 1 1 11.2 3a7.2 7.2 0 0 0 9.8 9.8z" />
-      </svg>
-    </Button>
-  );
-}
+
 
 export default function Home() {
   const auth = useAuth();
@@ -145,7 +96,6 @@ export default function Home() {
   if (auth.isAuthLoading) {
     return (
       <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-8">
-        <ThemeToggle onToggle={toggleTheme} />
         <div className="liquid-orb liquid-orb--one" />
         <div className="liquid-orb liquid-orb--two" />
         <div className="liquid-orb liquid-orb--three" />
@@ -160,7 +110,6 @@ export default function Home() {
   if (!auth.session) {
     return (
       <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-8 md:px-6">
-        <ThemeToggle onToggle={toggleTheme} />
         <div className="liquid-orb liquid-orb--one" />
         <div className="liquid-orb liquid-orb--two" />
         <div className="liquid-orb liquid-orb--three" />
