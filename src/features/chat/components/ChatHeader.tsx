@@ -51,7 +51,7 @@ export function ChatHeader({ contactName, onBack, onToggleTheme }: ChatHeaderPro
           variant="ghost"
           size="icon"
           onClick={onToggleTheme}
-          className="size-9 rounded-full text-[var(--muted-foreground)]"
+          className="relative size-9 rounded-full text-[var(--muted-foreground)]"
           aria-label="Tema almashtirish"
         >
           <svg

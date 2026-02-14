@@ -36,7 +36,7 @@ export function UserSearchModal({
                     </h2>
                     <button
                         onClick={onClose}
-                        className="text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
+                        className="cursor-pointer text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
                         aria-label="Yopish"
                     >
                         <svg
@@ -93,7 +93,7 @@ export function UserSearchModal({
                                 onSelectUser(user);
                                 onClose();
                             }}
-                            className="liquid-list-item flex w-full items-center gap-3 rounded-xl p-3 text-left transition"
+                            className="liquid-list-item flex w-full cursor-pointer items-center gap-3 rounded-xl p-3 text-left transition"
                         >
                             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--avatar-bg)] text-sm font-semibold text-[var(--accent)]">
                                 {user.display_name.charAt(0).toUpperCase()}

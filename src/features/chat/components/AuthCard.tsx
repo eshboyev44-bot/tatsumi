@@ -100,7 +100,7 @@ export function AuthCard({
         <button
           type="button"
           onClick={onToggleMode}
-          className="text-sm font-medium text-[var(--accent)] transition hover:opacity-80"
+          className="cursor-pointer text-sm font-medium text-[var(--accent)] transition hover:opacity-80"
         >
           {authMode === "signin"
             ? "Akkaunt yo'qmi? Ro'yxatdan o'tish"

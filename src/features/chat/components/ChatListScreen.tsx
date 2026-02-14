@@ -92,7 +92,7 @@ export function ChatListScreen({
                 key={conv.id}
                 type="button"
                 onClick={() => onOpenChat(conv.id)}
-                className="liquid-list-item w-full rounded-2xl p-3 text-left transition"
+                className="liquid-list-item w-full cursor-pointer rounded-2xl p-3 text-left transition"
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="size-12 bg-[var(--avatar-bg)] text-white">
