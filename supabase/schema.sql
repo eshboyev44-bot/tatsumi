@@ -1,6 +1,7 @@
 -- public.messages jadvali
 create table if not exists public.messages (
   id bigint generated always as identity primary key,
+  user_id uuid references auth.users(id) on delete set null default auth.uid(),
   created_at timestamptz not null default now(),
   username text not null check (char_length(btrim(username)) > 0),
   content text not null check (char_length(btrim(content)) > 0 and char_length(content) <= 500)
@@ -8,6 +9,7 @@ create table if not exists public.messages (
 
 -- Eski jadval bo'lsa (faqat content bilan), kerakli ustunlarni qo'shamiz
 alter table public.messages
+  add column if not exists user_id uuid references auth.users(id) on delete set null,
   add column if not exists username text,
   add column if not exists content text,
   add column if not exists created_at timestamptz default now();
@@ -17,6 +19,7 @@ set username = 'Guest'
 where username is null or char_length(btrim(username)) = 0;
 
 alter table public.messages
+  alter column user_id set default auth.uid(),
   alter column created_at set default now(),
   alter column content set not null,
   alter column username set default 'Guest',
@@ -45,11 +48,14 @@ to anon, authenticated
 using (true);
 
 drop policy if exists "Public can insert messages" on public.messages;
-create policy "Public can insert messages"
+drop policy if exists "Authenticated can insert messages" on public.messages;
+create policy "Authenticated can insert messages"
 on public.messages
 for insert
-to anon, authenticated
+to authenticated
 with check (
+  auth.uid() is not null and
+  auth.uid() = user_id and
   char_length(btrim(username)) > 0 and
   char_length(btrim(content)) > 0 and
   char_length(content) <= 500
