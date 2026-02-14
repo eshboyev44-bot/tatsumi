@@ -31,98 +31,89 @@ export function AuthCard({
   onToggleMode,
 }: AuthCardProps) {
   return (
-    <div className="flex flex-1 flex-col bg-[#efeff4]">
-      <div className="border-b border-black/10 bg-white px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[17px] font-semibold text-[#111]">Phone number</span>
-          <Button
-            type="submit"
-            form="auth-form"
-            variant="ghost"
-            size="sm"
-            disabled={isSubmitting}
-            className="h-8 rounded-md px-2 text-[#007aff] hover:bg-[#f0f4ff] disabled:text-[#b8c0cc]"
-          >
-            Done
-          </Button>
-        </div>
-      </div>
-
-      <p className="px-8 py-8 text-center text-[14px] leading-relaxed text-[#34383b]">
-        Please confirm your account and enter your credentials to continue.
+    <section className="liquid-panel relative z-10 w-full max-w-[460px] rounded-[2rem] p-6 md:p-8">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted-foreground)]">
+        Liquid Chat
+      </p>
+      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--foreground)] md:text-4xl">
+        {authMode === "signin" ? "Welcome back" : "Create account"}
+      </h1>
+      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+        Supabase Auth bilan xavfsiz kirish. Realtime chat darhol ishlaydi.
       </p>
 
-      <form
-        id="auth-form"
-        onSubmit={onSubmit}
-        className="border-y border-black/10 bg-white"
-      >
-        <div className="border-b border-black/10 px-4 py-3">
-          <button
-            type="button"
-            onClick={onToggleMode}
-            className="text-[17px] text-[#007aff]"
-          >
-            {authMode === "signin" ? "Create account" : "Already registered?"}
-          </button>
-        </div>
-
+      <form onSubmit={onSubmit} className="mt-8 space-y-4">
         {authMode === "signup" && (
-          <div className="border-b border-black/10 px-4 py-2">
+          <label className="flex flex-col gap-1.5 text-sm text-[var(--muted-foreground)]">
+            Display name
             <Input
               value={displayName}
               onChange={(event) => onDisplayNameChange(event.target.value)}
               maxLength={32}
-              placeholder="Full name"
-              className="h-10 rounded-none border-0 px-0 text-[17px] focus:ring-0"
+              placeholder="Masalan: Farrux"
+              className="h-12 rounded-2xl bg-[var(--surface-strong)]"
             />
-          </div>
+          </label>
         )}
 
-        <div className="border-b border-black/10 px-4 py-2">
+        <label className="flex flex-col gap-1.5 text-sm text-[var(--muted-foreground)]">
+          Email
           <Input
             type="email"
             value={email}
             onChange={(event) => onEmailChange(event.target.value)}
-            placeholder="Email address"
-            className="h-10 rounded-none border-0 px-0 text-[17px] focus:ring-0"
+            placeholder="you@example.com"
+            className="h-12 rounded-2xl bg-[var(--surface-strong)]"
+            autoComplete="email"
             required
           />
-        </div>
+        </label>
 
-        <div className="px-4 py-2">
+        <label className="flex flex-col gap-1.5 text-sm text-[var(--muted-foreground)]">
+          Password
           <Input
             type="password"
             value={password}
             onChange={(event) => onPasswordChange(event.target.value)}
             minLength={6}
-            placeholder="Password"
-            className="h-10 rounded-none border-0 px-0 text-[17px] focus:ring-0"
+            placeholder="Kamida 6 belgi"
+            className="h-12 rounded-2xl bg-[var(--surface-strong)]"
+            autoComplete="current-password"
             required
           />
-        </div>
-      </form>
+        </label>
 
-      <div className="mt-3 px-4">
         <Button
           type="submit"
-          form="auth-form"
           disabled={isSubmitting}
-          className="h-11 w-full rounded-xl"
+          className="h-12 w-full rounded-2xl bg-[var(--accent)] text-white"
         >
           {isSubmitting
             ? "Kutilmoqda..."
             : authMode === "signin"
-            ? "Kirish"
-            : "Ro'yxatdan o'tish"}
+              ? "Kirish"
+              : "Ro'yxatdan o'tish"}
         </Button>
+      </form>
+
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onToggleMode}
+          className="text-sm font-medium text-[var(--accent)] transition hover:opacity-80"
+        >
+          {authMode === "signin"
+            ? "Akkaunt yo'qmi? Ro'yxatdan o'tish"
+            : "Akkaunt bormi? Kirish"}
+        </button>
+        <span className="text-xs text-[var(--muted-foreground)]">Secure by Supabase</span>
       </div>
 
       {authMessage && (
-        <p className="mx-4 mt-3 rounded-xl bg-white px-3 py-2 text-sm text-[#5f6b70] shadow-sm">
+        <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted-foreground)]">
           {authMessage}
         </p>
       )}
-    </div>
+    </section>
   );
 }

@@ -21,9 +21,6 @@ export function PhoneFrame({
     >
       <div className={cn("flex min-h-[844px] flex-col", contentClassName)}>
         {children}
-        <div className="pb-3 pt-2">
-          <div className="mx-auto h-[5px] w-36 rounded-full bg-black/90" />
-        </div>
       </div>
     </div>
   );

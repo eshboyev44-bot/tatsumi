@@ -1,32 +1,120 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { AuthCard } from "@/features/chat/components/AuthCard";
 import { ChatHeader } from "@/features/chat/components/ChatHeader";
 import { ChatListScreen } from "@/features/chat/components/ChatListScreen";
-import { IosStatusBar } from "@/features/chat/components/IosStatusBar";
 import { MessageComposer } from "@/features/chat/components/MessageComposer";
 import { MessageList } from "@/features/chat/components/MessageList";
-import { PhoneFrame } from "@/features/chat/components/PhoneFrame";
+import { UserSearchModal } from "@/features/chat/components/UserSearchModal";
 import { useAuth } from "@/features/chat/useAuth";
 import { useChatMessages } from "@/features/chat/useChatMessages";
+import { useConversations } from "@/features/chat/useConversations";
+
+type ThemeMode = "light" | "dark";
+
+function getInitialTheme(): ThemeMode {
+  if (typeof window === "undefined") {
+    return "light";
+  }
+
+  const savedTheme = window.localStorage.getItem("theme");
+  if (savedTheme === "light" || savedTheme === "dark") {
+    return savedTheme;
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+function ThemeToggle({
+  onToggle,
+}: {
+  onToggle: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      onClick={onToggle}
+      className="liquid-panel absolute right-4 top-4 z-20 size-10 rounded-full text-[var(--muted-foreground)] md:right-6 md:top-6"
+      aria-label="Tema almashtirish"
+      title="Theme toggle"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="theme-icon theme-icon--sun"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="4.5" />
+        <path d="M12 2v2.5" />
+        <path d="M12 19.5V22" />
+        <path d="M4.9 4.9l1.8 1.8" />
+        <path d="M17.3 17.3l1.8 1.8" />
+        <path d="M2 12h2.5" />
+        <path d="M19.5 12H22" />
+        <path d="M4.9 19.1l1.8-1.8" />
+        <path d="M17.3 6.7l1.8-1.8" />
+      </svg>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="theme-icon theme-icon--moon"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7.2 7.2 0 0 0 9.8 9.8z" />
+      </svg>
+    </Button>
+  );
+}
 
 export default function Home() {
   const auth = useAuth();
   const [view, setView] = useState<"chats" | "chat">("chats");
+  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    window.localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((previous) => (previous === "dark" ? "light" : "dark"));
+  };
+
+  const conversations = useConversations({ session: auth.session });
   const chat = useChatMessages({
     displayName: auth.displayName,
     session: auth.session,
+    conversationId: selectedConversationId,
   });
 
-  const latestMessagePreview = useMemo(() => {
-    const latest = chat.messages[chat.messages.length - 1];
-    if (!latest) {
-      return "No messages yet";
-    }
+  const selectedConversation = conversations.conversations.find(
+    (c) => c.id === selectedConversationId
+  );
 
-    return latest.content;
-  }, [chat.messages]);
+  const activeContactName = selectedConversation?.other_user?.display_name ||
+    auth.displayName.trim() ||
+    auth.session?.user.email?.split("@")[0]?.trim() ||
+    "Conversation";
 
   const handleSignOut = async () => {
     const signOutError = await auth.signOut();
@@ -35,91 +123,123 @@ export default function Home() {
       return;
     }
 
+    setView("chats");
+    setSelectedConversationId(null);
     chat.setError(null);
     chat.setNewMessage("");
   };
 
+  const handleSelectUser = async (user: { id: string }) => {
+    const convId = await conversations.createConversation(user.id);
+    if (convId) {
+      setSelectedConversationId(convId);
+      setView("chat");
+    }
+  };
+
+  const handleOpenChat = (conversationId: string) => {
+    setSelectedConversationId(conversationId);
+    setView("chat");
+  };
+
   if (auth.isAuthLoading) {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-[1280px] items-center justify-center px-4 py-8">
-        <PhoneFrame>
-          <IosStatusBar className="bg-white" />
-          <div className="flex flex-1 items-center justify-center bg-[#efeff4] text-sm text-[#67727a]">
-            Auth tekshirilmoqda...
-          </div>
-        </PhoneFrame>
+      <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-8">
+        <ThemeToggle onToggle={toggleTheme} />
+        <div className="liquid-orb liquid-orb--one" />
+        <div className="liquid-orb liquid-orb--two" />
+        <div className="liquid-orb liquid-orb--three" />
+
+        <div className="liquid-panel relative z-10 flex h-56 w-full max-w-lg items-center justify-center rounded-[2rem] text-[var(--muted-foreground)]">
+          Auth tekshirilmoqda...
+        </div>
       </main>
     );
   }
 
   if (!auth.session) {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-[1280px] items-center justify-center px-4 py-8">
-        <PhoneFrame className="bg-[#efeff4]" contentClassName="bg-[#efeff4]">
-          <IosStatusBar className="bg-white" />
-          <AuthCard
-            authMessage={auth.authMessage}
-            authMode={auth.authMode}
-            displayName={auth.displayName}
-            email={auth.email}
-            isSubmitting={auth.isAuthSubmitting}
-            password={auth.password}
-            onDisplayNameChange={auth.setDisplayName}
-            onEmailChange={auth.setEmail}
-            onPasswordChange={auth.setPassword}
-            onSubmit={(event) => {
-              void auth.handleAuthSubmit(event);
-            }}
-            onToggleMode={auth.toggleAuthMode}
-          />
-        </PhoneFrame>
+      <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-8 md:px-6">
+        <ThemeToggle onToggle={toggleTheme} />
+        <div className="liquid-orb liquid-orb--one" />
+        <div className="liquid-orb liquid-orb--two" />
+        <div className="liquid-orb liquid-orb--three" />
+
+        <AuthCard
+          authMessage={auth.authMessage}
+          authMode={auth.authMode}
+          displayName={auth.displayName}
+          email={auth.email}
+          isSubmitting={auth.isAuthSubmitting}
+          password={auth.password}
+          onDisplayNameChange={auth.setDisplayName}
+          onEmailChange={auth.setEmail}
+          onPasswordChange={auth.setPassword}
+          onSubmit={(event) => {
+            void auth.handleAuthSubmit(event);
+          }}
+          onToggleMode={auth.toggleAuthMode}
+        />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-[1280px] items-center justify-center px-3 py-3 md:px-5 md:py-5">
-      <PhoneFrame className="bg-[#f6f6f6]" contentClassName="bg-[#f6f6f6]">
-        <IosStatusBar className="bg-white" />
+    <main className="relative min-h-dvh overflow-hidden px-3 md:px-6">
+      <ThemeToggle onToggle={toggleTheme} />
+      <div className="liquid-orb liquid-orb--one" />
+      <div className="liquid-orb liquid-orb--two" />
+      <div className="liquid-orb liquid-orb--three" />
 
-        {view === "chats" ? (
+      <section className="liquid-shell relative z-10 mx-auto flex h-[100svh] w-full max-w-6xl overflow-hidden rounded-[2rem]">
+        <aside
+          className={`min-h-0 border-[var(--border)] md:w-[340px] md:shrink-0 md:border-r ${view === "chat" ? "hidden md:flex" : "flex"
+            } flex-col`}
+        >
           <ChatListScreen
-            contactName={auth.displayName || "Martha Craig"}
-            lastMessage={latestMessagePreview}
-            lastTime="now"
-            onOpenChat={() => setView("chat")}
+            conversations={conversations.conversations}
+            isLoading={conversations.isLoading}
+            onOpenChat={handleOpenChat}
+            onNewChat={() => setIsSearchModalOpen(true)}
             onSignOut={() => {
               void handleSignOut();
             }}
           />
-        ) : (
-          <>
-            <ChatHeader
-              contactName={auth.displayName || "Martha Craig"}
-              onBack={() => setView("chats")}
-            />
+        </aside>
 
-            <MessageList
-              bottomRef={chat.bottomRef}
-              currentUserId={auth.session.user.id}
-              isLoading={chat.isLoadingMessages}
-              messages={chat.messages}
-            />
+        <UserSearchModal
+          isOpen={isSearchModalOpen}
+          onClose={() => setIsSearchModalOpen(false)}
+          onSelectUser={handleSelectUser}
+        />
 
-            <MessageComposer
-              canSend={chat.canSend}
-              error={chat.error}
-              isSending={chat.isSending}
-              newMessage={chat.newMessage}
-              remainingChars={chat.remainingChars}
-              onChange={chat.setNewMessage}
-              onSubmit={(event) => {
-                void chat.sendMessage(event);
-              }}
-            />
-          </>
-        )}
-      </PhoneFrame>
-    </main>
+        <section
+          className={`${view === "chat" ? "flex" : "hidden md:flex"} min-h-0 flex-1 flex-col`}
+        >
+          <ChatHeader
+            contactName={activeContactName}
+            onBack={() => setView("chats")}
+          />
+
+          <MessageList
+            currentUserId={auth.session.user.id}
+            isLoading={chat.isLoadingMessages}
+            messages={chat.messages}
+          />
+
+          <MessageComposer
+            canSend={chat.canSend}
+            error={chat.error}
+            isSending={chat.isSending}
+            newMessage={chat.newMessage}
+            remainingChars={chat.remainingChars}
+            onChange={chat.setNewMessage}
+            onSubmit={(event) => {
+              void chat.sendMessage(event);
+            }}
+          />
+        </section>
+      </section>
+    </main >
   );
 }

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { RealtimeChannel, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import type { Message } from "@/features/chat/types";
@@ -13,26 +13,34 @@ import {
 type UseChatMessagesParams = {
   displayName: string;
   session: Session | null;
+  conversationId: string | null;
 };
 
 export function useChatMessages({
   displayName,
   session,
+  conversationId,
 }: UseChatMessagesParams) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     const fetchMessages = async () => {
+      if (!conversationId) {
+        setMessages([]);
+        setIsLoadingMessages(false);
+        return;
+      }
+
       const { data, error: fetchError } = await supabase
         .from("messages")
-        .select("id, created_at, user_id, username, content")
+        .select("id, created_at, user_id, username, content, conversation_id")
+        .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
         .limit(MAX_FETCH_COUNT);
 
@@ -53,11 +61,22 @@ export function useChatMessages({
 
     void fetchMessages();
 
+    if (!conversationId) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
     const channel: RealtimeChannel = supabase
-      .channel("messages-room")
+      .channel(`messages-${conversationId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
         (payload) => {
           const incomingMessage = payload.new as Message;
           setMessages((previous) => mergeMessages(previous, [incomingMessage]));
@@ -73,13 +92,7 @@ export function useChatMessages({
       isMounted = false;
       void supabase.removeChannel(channel);
     };
-  }, []);
-
-  useEffect(() => {
-    if (!isLoadingMessages) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [isLoadingMessages, messages]);
+  }, [conversationId]);
 
   const remainingChars = MAX_MESSAGE_LENGTH - newMessage.length;
   const effectiveDisplayName = useMemo(() => {
@@ -112,10 +125,16 @@ export function useChatMessages({
       return;
     }
 
+    if (!conversationId) {
+      setError("Suhbat tanlanmagan");
+      return;
+    }
+
     const payload = {
       user_id: session.user.id,
       username: effectiveDisplayName,
       content: newMessage.trim(),
+      conversation_id: conversationId,
     };
 
     setIsSending(true);
@@ -137,7 +156,6 @@ export function useChatMessages({
   };
 
   return {
-    bottomRef,
     canSend,
     error,
     isLoadingMessages,

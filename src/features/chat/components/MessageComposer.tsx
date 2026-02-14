@@ -1,4 +1,4 @@
-import { FormEvent } from "react";
+import { FormEvent, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -21,24 +21,40 @@ export function MessageComposer({
   onChange,
   onSubmit,
 }: MessageComposerProps) {
+  const handleTextareaKeyDown = (
+    event: KeyboardEvent<HTMLTextAreaElement>
+  ) => {
+    if (event.nativeEvent.isComposing) {
+      return;
+    }
+
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      if (!canSend) {
+        return;
+      }
+      event.currentTarget.form?.requestSubmit();
+    }
+  };
+
   return (
-    <footer className="border-t border-black/10 bg-[#f3f4f6] px-2 pb-2 pt-1">
+    <footer className="liquid-topbar relative z-10 shrink-0 border-t border-[var(--border)] px-4 pb-4 pt-3 md:px-5">
       <form onSubmit={onSubmit} className="space-y-2">
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-2 rounded-[1.4rem] border border-[var(--border)] bg-[var(--surface-strong)] p-2 shadow-[0_12px_30px_rgba(56,72,96,0.16)] backdrop-blur-2xl">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="size-10 rounded-full p-0 text-[#007aff] hover:bg-[#e8ecf0]"
-            aria-label="Qo'shish"
+            className="size-9 rounded-full text-[var(--muted-foreground)]"
+            aria-label="Qo'shimcha"
           >
             <svg
               aria-hidden="true"
               viewBox="0 0 24 24"
-              className="size-7"
+              className="size-5"
               fill="none"
               stroke="currentColor"
-              strokeWidth="1.9"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
@@ -47,47 +63,25 @@ export function MessageComposer({
             </svg>
           </Button>
 
-          <div className="flex min-h-11 flex-1 items-end rounded-full bg-white px-2 py-1 shadow-sm">
-            <Textarea
-              value={newMessage}
-              onChange={(event) => onChange(event.target.value)}
-              rows={1}
-              maxLength={500}
-              placeholder="Message"
-              className="min-h-[34px] resize-none border-0 bg-transparent px-2 py-1 text-[15px] shadow-none focus:ring-0"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="mb-0.5 size-8 rounded-full p-0 text-[#007aff] hover:bg-[#e8ecf0]"
-              aria-label="Camera"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="size-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                <circle cx="12" cy="13" r="4" />
-              </svg>
-            </Button>
-          </div>
+          <Textarea
+            value={newMessage}
+            onChange={(event) => onChange(event.target.value)}
+            onKeyDown={handleTextareaKeyDown}
+            rows={1}
+            maxLength={500}
+            placeholder="Xabaringizni yozing..."
+            className="min-h-[40px] resize-none border-0 bg-transparent px-2 py-1 text-[15px] shadow-none focus:ring-0"
+          />
 
           <Button
             type="submit"
             size="icon"
             disabled={!canSend}
-            className="size-10 rounded-full bg-[#0b93f6] p-0 text-white hover:bg-[#0a83dc] disabled:bg-[#9ecff4]"
+            className="size-9 rounded-full bg-[var(--accent)] text-white hover:brightness-95 disabled:bg-[color-mix(in_oklab,var(--accent),white_45%)]"
             aria-label="Yuborish"
           >
             {isSending ? (
-              <span className="text-[11px]">...</span>
+              <span className="text-xs">...</span>
             ) : (
               <svg
                 aria-hidden="true"
@@ -103,16 +97,19 @@ export function MessageComposer({
 
         <div className="flex items-center justify-between px-1">
           <p
-            className={`text-[11px] ${
-              remainingChars < 30 ? "text-amber-600" : "text-[#7d8a90]"
+            className={`text-xs ${
+              remainingChars < 30 ? "text-amber-600" : "text-[var(--muted-foreground)]"
             }`}
           >
             {remainingChars} belgi qoldi
           </p>
+          {isSending && (
+            <p className="text-xs text-[var(--muted-foreground)]">Yuborilmoqda...</p>
+          )}
         </div>
       </form>
 
-      {error && <p className="mt-1 px-1 text-xs text-rose-600">{error}</p>}
+      {error && <p className="mt-2 text-xs text-rose-600">{error}</p>}
     </footer>
   );
 }
