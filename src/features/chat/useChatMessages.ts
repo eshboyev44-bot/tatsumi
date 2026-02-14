@@ -28,6 +28,21 @@ export function useChatMessages({
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const markConversationAsRead = useCallback(async () => {
+    if (!sessionUserId || !conversationId) {
+      return;
+    }
+
+    const { error: markReadError } = await supabase.rpc("mark_messages_as_read", {
+      p_conversation_id: conversationId,
+      p_user_id: sessionUserId,
+    });
+
+    if (markReadError) {
+      console.error("mark_messages_as_read failed:", markReadError.message);
+    }
+  }, [conversationId, sessionUserId]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -60,12 +75,7 @@ export function useChatMessages({
         setMessages(data ?? []);
 
         // Auto-mark messages as read when conversation is opened
-        if (sessionUserId && conversationId) {
-          void supabase.rpc("mark_messages_as_read", {
-            p_conversation_id: conversationId,
-            p_user_id: sessionUserId,
-          });
-        }
+        void markConversationAsRead();
       }
 
       setIsLoadingMessages(false);
@@ -91,8 +101,9 @@ export function useChatMessages({
         },
         (payload) => {
           const incomingMessage = payload.new as Message;
+          const incomingMessageId = String(incomingMessage.id);
           setMessages((previous) => {
-            if (previous.some((message) => message.id === incomingMessage.id)) {
+            if (previous.some((message) => String(message.id) === incomingMessageId)) {
               return previous;
             }
 
@@ -120,10 +131,7 @@ export function useChatMessages({
             !incomingMessage.read_at;
 
           if (shouldMarkAsRead) {
-            void supabase.rpc("mark_messages_as_read", {
-              p_conversation_id: conversationId,
-              p_user_id: sessionUserId,
-            });
+            void markConversationAsRead();
           }
         }
       )
@@ -137,9 +145,10 @@ export function useChatMessages({
         },
         (payload) => {
           const updatedMessage = payload.new as Message;
+          const updatedMessageId = String(updatedMessage.id);
           setMessages((previous) =>
             previous.map((msg) =>
-              msg.id === updatedMessage.id ? updatedMessage : msg
+              String(msg.id) === updatedMessageId ? updatedMessage : msg
             )
           );
         }
@@ -154,7 +163,7 @@ export function useChatMessages({
       isMounted = false;
       void supabase.removeChannel(channel);
     };
-  }, [conversationId, sessionUserId]);
+  }, [conversationId, markConversationAsRead, sessionUserId]);
 
   const remainingChars = MAX_MESSAGE_LENGTH - newMessage.length;
   const effectiveDisplayName = useMemo(() => {
