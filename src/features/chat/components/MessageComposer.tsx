@@ -77,16 +77,16 @@ export function MessageComposer({
             type="submit"
             size="icon"
             disabled={!canSend}
-            className="size-9 rounded-full bg-[var(--accent)] text-white hover:brightness-95 disabled:bg-[color-mix(in_oklab,var(--accent),white_45%)]"
+            className="size-9 rounded-full bg-gradient-to-br from-[#0a9ef5] to-[#0d7ac4] text-white shadow-lg shadow-blue-500/30 transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-blue-500/40 active:scale-95 disabled:from-gray-400 disabled:to-gray-500 disabled:shadow-none disabled:opacity-50"
             aria-label="Yuborish"
           >
             {isSending ? (
-              <span className="text-xs">...</span>
+              <span className="text-xs animate-pulse">...</span>
             ) : (
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                className="size-4 -translate-x-px"
+                className="size-4 -translate-x-px transition-transform hover:translate-x-0.5"
                 fill="currentColor"
               >
                 <path d="M3 20.5v-7.1l8.5-1.4L3 10.6V3.5l18 8.5z" />
@@ -97,9 +97,8 @@ export function MessageComposer({
 
         <div className="flex items-center justify-between px-1">
           <p
-            className={`text-xs ${
-              remainingChars < 30 ? "text-amber-600" : "text-[var(--muted-foreground)]"
-            }`}
+            className={`text-xs ${remainingChars < 30 ? "text-amber-600" : "text-[var(--muted-foreground)]"
+              }`}
           >
             {remainingChars} belgi qoldi
           </p>
