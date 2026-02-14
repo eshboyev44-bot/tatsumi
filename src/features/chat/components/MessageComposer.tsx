@@ -62,7 +62,7 @@ export function MessageComposer({
   };
 
   return (
-    <footer className="liquid-topbar relative z-10 shrink-0 border-t border-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 md:border-[var(--border)] md:px-5 md:pb-4">
+    <footer className="liquid-topbar relative z-10 shrink-0 border-t border-transparent px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2.5 md:border-[var(--border)] md:px-5 md:pb-4 md:pt-3">
       <form onSubmit={onSubmit} className="space-y-2">
         {replyToPreview && (
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-2.5">
@@ -149,13 +149,13 @@ export function MessageComposer({
           </div>
         )}
 
-        <div className="flex items-end gap-2 overflow-hidden rounded-[1.4rem] border border-[var(--border)] bg-[var(--surface-strong)] p-2 shadow-none md:shadow-[0_12px_30px_rgba(56,72,96,0.16)] md:backdrop-blur-2xl">
+        <div className="flex w-full min-w-0 items-end gap-2 overflow-hidden rounded-[1.4rem] border border-[var(--border)] bg-[var(--surface-strong)] p-2 shadow-none md:shadow-[0_12px_30px_rgba(56,72,96,0.16)] md:backdrop-blur-2xl">
           <Button
             type="button"
             variant="ghost"
             size="icon"
             onClick={() => imageInputRef.current?.click()}
-            className="size-9 rounded-full text-[var(--muted-foreground)]"
+            className="size-9 shrink-0 rounded-full text-[var(--muted-foreground)]"
             aria-label="Qo'shimcha"
           >
             <svg
@@ -187,7 +187,7 @@ export function MessageComposer({
             rows={1}
             maxLength={500}
             placeholder="Xabaringizni yozing..."
-            className="min-h-[40px] resize-none border-0 bg-transparent px-2 py-1 text-[15px] shadow-none focus:ring-0"
+            className="min-h-[40px] min-w-0 w-auto flex-1 resize-none border-0 bg-transparent px-2 py-1 text-[15px] shadow-none focus:ring-0"
           />
 
           <Button

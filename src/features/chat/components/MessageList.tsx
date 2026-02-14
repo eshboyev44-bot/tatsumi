@@ -131,7 +131,7 @@ export const MessageList = memo(function MessageList({
     <>
       <ScrollArea
         ref={scrollRef}
-        className="chat-wallpaper relative z-0 min-h-0 flex-1 px-4 py-5 md:px-6"
+        className="chat-wallpaper relative z-0 min-h-0 flex-1 overflow-x-hidden px-3 py-4 sm:px-4 md:px-6"
       >
         {isLoading && (
           <p className="text-center text-sm text-[var(--muted-foreground)]">
@@ -173,10 +173,10 @@ export const MessageList = memo(function MessageList({
             return (
               <article
                 key={message.id}
-                className={`message-pop flex ${message.isMine ? "justify-end" : "justify-start"}`}
+                className={`message-pop flex w-full min-w-0 ${message.isMine ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`message-bubble max-w-[86%] rounded-2xl px-3.5 py-2.5 md:max-w-[70%] ${message.isMine
+                  className={`message-bubble w-fit min-w-0 max-w-[88%] rounded-2xl px-3.5 py-2.5 sm:max-w-[84%] md:max-w-[70%] ${message.isMine
                       ? "message-bubble--mine rounded-br-md"
                       : "message-bubble--theirs rounded-bl-md"
                     }`}
@@ -204,7 +204,7 @@ export const MessageList = memo(function MessageList({
                         src={imageUrl}
                         alt="Yuborilgan rasm"
                         loading="lazy"
-                        className="max-h-[320px] w-full rounded-xl border border-[var(--border)] object-cover"
+                        className="max-h-[260px] w-full rounded-xl border border-[var(--border)] object-cover sm:max-h-[320px]"
                       />
                     </button>
                   )}

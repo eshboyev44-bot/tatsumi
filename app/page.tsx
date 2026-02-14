@@ -13,6 +13,7 @@ import { useAuth } from "@/features/chat/useAuth";
 import { useBrowserNotifications } from "@/features/chat/useBrowserNotifications";
 import { useChatMessages } from "@/features/chat/useChatMessages";
 import { useConversations } from "@/features/chat/useConversations";
+import { useUserPresence } from "@/features/chat/useUserPresence";
 
 type ThemeMode = "light" | "dark";
 
@@ -29,6 +30,42 @@ function getInitialTheme(): ThemeMode {
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
     : "light";
+}
+
+function formatEnteredAtText(enteredAt: string | null) {
+  if (!enteredAt) {
+    return null;
+  }
+
+  const entered = new Date(enteredAt);
+  if (Number.isNaN(entered.getTime())) {
+    return null;
+  }
+
+  const now = new Date();
+  const today = now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  const timeText = entered.toLocaleTimeString("uz-UZ", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  if (entered.toDateString() === today) {
+    return `bugun ${timeText}`;
+  }
+
+  if (entered.toDateString() === yesterday.toDateString()) {
+    return `kecha ${timeText}`;
+  }
+
+  const dateText = entered.toLocaleDateString("uz-UZ", {
+    day: "2-digit",
+    month: "short",
+  });
+
+  return `${dateText}, ${timeText}`;
 }
 
 
@@ -131,16 +168,31 @@ export default function Home() {
       ),
     [conversations.conversations, selectedConversationId]
   );
+  const otherUserId = selectedConversation?.other_user?.id ?? null;
+  const userPresence = useUserPresence({
+    session: auth.session,
+    targetUserId: otherUserId,
+  });
 
-  const activeContactName = useMemo(
-    () =>
-      selectedConversation?.other_user?.display_name ||
-      auth.displayName.trim() ||
-      auth.session?.user.email?.split("@")[0]?.trim() ||
-      "Suhbat",
-    [auth.displayName, auth.session?.user.email, selectedConversation?.other_user?.display_name]
-  );
+  const activeContactName =
+    selectedConversation?.other_user?.display_name ||
+    auth.displayName.trim() ||
+    auth.session?.user.email?.split("@")[0]?.trim() ||
+    "Suhbat";
   const activeContactAvatar = selectedConversation?.other_user?.avatar_url ?? null;
+  const activeContactStatus = useMemo(() => {
+    if (chat.isOtherUserTyping) {
+      return "yozyapti...";
+    }
+
+    const enteredAtText = formatEnteredAtText(userPresence.enteredAt);
+
+    if (userPresence.isOnline) {
+      return enteredAtText ? `Online • ${enteredAtText}` : "Online";
+    }
+
+    return enteredAtText ? `Offline • ${enteredAtText}` : "Offline";
+  }, [chat.isOtherUserTyping, userPresence.enteredAt, userPresence.isOnline]);
   const hasSelectedConversation = selectedConversationId !== null;
 
   const handleSignOut = useCallback(async () => {
@@ -316,7 +368,7 @@ export default function Home() {
       <div className="liquid-orb liquid-orb--two" />
       <div className="liquid-orb liquid-orb--three" />
 
-      <section className="liquid-shell relative z-10 mx-auto flex h-[100svh] w-full max-w-6xl overflow-hidden rounded-none border-transparent md:rounded-[2rem] md:border-[var(--border)]">
+      <section className="liquid-shell relative z-10 mx-auto flex h-[100svh] min-w-0 w-full max-w-6xl overflow-hidden rounded-none border-transparent md:rounded-[2rem] md:border-[var(--border)]">
         <aside
           className={`w-full min-h-0 border-[var(--border)] md:w-[340px] md:shrink-0 md:border-r ${view === "chat" ? "hidden md:flex" : "flex"
             } flex-col`}
@@ -358,7 +410,7 @@ export default function Home() {
         />
 
         <section
-          className={`${view === "chat" ? "flex" : "hidden md:flex"} min-h-0 flex-1 flex-col`}
+          className={`${view === "chat" ? "flex" : "hidden md:flex"} min-h-0 min-w-0 flex-1 flex-col`}
         >
           {hasSelectedConversation ? (
             <>
@@ -366,6 +418,7 @@ export default function Home() {
                 avatarUrl={activeContactAvatar}
                 contactName={activeContactName}
                 isTyping={chat.isOtherUserTyping}
+                statusText={activeContactStatus}
                 onBack={handleBackToChats}
                 onToggleTheme={toggleTheme}
               />

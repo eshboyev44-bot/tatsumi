@@ -6,6 +6,7 @@ type ChatHeaderProps = {
   avatarUrl?: string | null;
   contactName: string;
   isTyping?: boolean;
+  statusText?: string;
   onBack: () => void;
   onToggleTheme: () => void;
 };
@@ -14,18 +15,19 @@ export const ChatHeader = memo(function ChatHeader({
   avatarUrl,
   contactName,
   isTyping = false,
+  statusText,
   onBack,
   onToggleTheme,
 }: ChatHeaderProps) {
   return (
-    <header className="liquid-topbar relative z-10 shrink-0 border-b border-transparent px-4 py-3 md:border-[var(--border)] md:px-5">
-      <div className="flex items-center gap-3">
+    <header className="liquid-topbar relative z-10 shrink-0 border-b border-transparent px-3 py-2.5 md:border-[var(--border)] md:px-5 md:py-3">
+      <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
         <Button
           type="button"
           variant="ghost"
           size="icon"
           onClick={onBack}
-          className="size-9 rounded-full text-[var(--muted-foreground)] md:hidden"
+          className="size-8 shrink-0 rounded-full text-[var(--muted-foreground)] md:size-9 md:hidden"
           aria-label="Orqaga"
         >
           <svg
@@ -42,7 +44,7 @@ export const ChatHeader = memo(function ChatHeader({
           </svg>
         </Button>
 
-        <Avatar className="size-11 bg-[var(--avatar-bg)] text-white">
+        <Avatar className="size-10 shrink-0 bg-[var(--avatar-bg)] text-white md:size-11">
           <AvatarImage src={avatarUrl ?? undefined} alt={contactName} />
           <AvatarFallback>{contactName.slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
@@ -52,18 +54,16 @@ export const ChatHeader = memo(function ChatHeader({
             {contactName}
           </p>
           <p className="truncate text-xs text-[var(--muted-foreground)]">
-            {isTyping ? "yozyapti..." : "Hozir onlayn"}
+            {isTyping ? "yozyapti..." : statusText ?? "Hozir onlayn"}
           </p>
         </div>
-
-        <div className="flex-1" />
 
         <Button
           type="button"
           variant="ghost"
           size="icon"
           onClick={onToggleTheme}
-          className="relative size-9 rounded-full text-[var(--muted-foreground)]"
+          className="relative ml-1 size-8 shrink-0 rounded-full text-[var(--muted-foreground)] md:size-9"
           aria-label="Tema almashtirish"
         >
           <svg
