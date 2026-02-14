@@ -111,6 +111,20 @@ export function useChatMessages({
 
             return mergeMessages(previous, [incomingMessage]);
           });
+
+          const shouldMarkAsRead =
+            !!sessionUserId &&
+            !!conversationId &&
+            !!incomingMessage.user_id &&
+            incomingMessage.user_id !== sessionUserId &&
+            !incomingMessage.read_at;
+
+          if (shouldMarkAsRead) {
+            void supabase.rpc("mark_messages_as_read", {
+              p_conversation_id: conversationId,
+              p_user_id: sessionUserId,
+            });
+          }
         }
       )
       .on(
