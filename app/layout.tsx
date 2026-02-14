@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Tatsumi Chat",
   description: "Realtime chat app with Next.js + Supabase + Vercel",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({

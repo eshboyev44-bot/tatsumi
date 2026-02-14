@@ -44,6 +44,8 @@ export function ChatHeader({ contactName, onBack, onToggleTheme }: ChatHeaderPro
           <p className="truncate text-xs text-[var(--muted-foreground)]">Online now</p>
         </div>
 
+        <div className="flex-1" />
+
         <Button
           type="button"
           variant="ghost"
