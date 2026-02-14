@@ -7,6 +7,8 @@ import type { Conversation } from "@/features/chat/types";
 type ChatListScreenProps = {
   conversations: Conversation[];
   isLoading: boolean;
+  notificationPermission: "default" | "granted" | "denied" | "unsupported";
+  onEnableNotifications: () => void;
   onOpenChat: (conversationId: string) => void;
   onNewChat: () => void;
   onOpenProfile: () => void;
@@ -16,6 +18,8 @@ type ChatListScreenProps = {
 export const ChatListScreen = memo(function ChatListScreen({
   conversations,
   isLoading,
+  notificationPermission,
+  onEnableNotifications,
   onOpenChat,
   onNewChat,
   onOpenProfile,
@@ -39,6 +43,7 @@ export const ChatListScreen = memo(function ChatListScreen({
           displayName,
           lastMessage,
           lastTime,
+          unreadCount: conversation.unread_count ?? 0,
         };
       }),
     [conversations]
@@ -50,6 +55,43 @@ export const ChatListScreen = memo(function ChatListScreen({
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-[var(--foreground)]">Suhbatlar</h2>
           <div className="flex items-center gap-1">
+            {notificationPermission !== "unsupported" && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={onEnableNotifications}
+                className={`size-9 rounded-full ${notificationPermission === "granted"
+                  ? "text-emerald-500"
+                  : notificationPermission === "denied"
+                    ? "text-rose-500"
+                    : "text-[var(--muted-foreground)]"
+                  }`}
+                title={
+                  notificationPermission === "granted"
+                    ? "Bildirishnomalar yoqilgan"
+                    : notificationPermission === "denied"
+                      ? "Bildirishnomaga ruxsat berilmagan"
+                      : "Bildirishnomani yoqish"
+                }
+                aria-label="Bildirishnomalar"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="size-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
+                  <path d="M9 17a3 3 0 0 0 6 0" />
+                </svg>
+              </Button>
+            )}
+
             <Button
               type="button"
               variant="ghost"
@@ -148,15 +190,24 @@ export const ChatListScreen = memo(function ChatListScreen({
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-start justify-between gap-2">
                       <p className="truncate text-sm font-semibold text-[var(--foreground)]">
                         {conversationRow.displayName}
                       </p>
-                      {conversationRow.lastTime && (
-                        <span className="shrink-0 text-xs text-[var(--muted-foreground)]">
-                          {conversationRow.lastTime}
-                        </span>
-                      )}
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        {conversationRow.lastTime && (
+                          <span className="text-xs text-[var(--muted-foreground)]">
+                            {conversationRow.lastTime}
+                          </span>
+                        )}
+                        {conversationRow.unreadCount > 0 && (
+                          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[10px] font-semibold text-white">
+                            {conversationRow.unreadCount > 99
+                              ? "99+"
+                              : conversationRow.unreadCount}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <p className="mt-1 truncate text-sm text-[var(--muted-foreground)]">
                       {conversationRow.lastMessage}

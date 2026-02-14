@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimeChannel, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import type { Message } from "@/features/chat/types";
@@ -25,6 +25,16 @@ const SUPPORTED_IMAGE_TYPES = new Set([
   "image/gif",
 ]);
 
+const TYPING_STOP_DELAY_MS = 1200;
+const TYPING_HEARTBEAT_MS = 2400;
+const TYPING_INDICATOR_TTL_MS = 3200;
+
+type TypingPayload = {
+  conversationId: string;
+  userId: string;
+  isTyping: boolean;
+};
+
 function getImageExtension(fileName: string) {
   const extension = fileName.split(".").pop()?.toLowerCase().trim();
   if (!extension) {
@@ -41,11 +51,19 @@ export function useChatMessages({
   const sessionUserId = session?.user.id;
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [replyToMessageId, setReplyToMessageId] = useState<number | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [selectedImagePreviewUrl, setSelectedImagePreviewUrl] = useState<string | null>(null);
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const isTypingRef = useRef(false);
+  const lastTypingHeartbeatAtRef = useRef(0);
+  const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingIndicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearSelectedImage = useCallback(() => {
     setSelectedImageFile(null);
@@ -56,6 +74,97 @@ export function useChatMessages({
       return null;
     });
   }, []);
+
+  const clearReplyTarget = useCallback(() => {
+    setReplyToMessageId(null);
+  }, []);
+
+  const startReply = useCallback((message: Message) => {
+    setReplyToMessageId(message.id);
+    setError(null);
+  }, []);
+
+  const clearTypingStopTimer = useCallback(() => {
+    if (!typingStopTimerRef.current) {
+      return;
+    }
+    clearTimeout(typingStopTimerRef.current);
+    typingStopTimerRef.current = null;
+  }, []);
+
+  const clearTypingIndicatorTimer = useCallback(() => {
+    if (!typingIndicatorTimerRef.current) {
+      return;
+    }
+    clearTimeout(typingIndicatorTimerRef.current);
+    typingIndicatorTimerRef.current = null;
+  }, []);
+
+  const broadcastTyping = useCallback(
+    (isTyping: boolean) => {
+      const channel = channelRef.current;
+      if (!channel || !conversationId || !sessionUserId) {
+        return;
+      }
+
+      if (!isTyping && !isTypingRef.current) {
+        return;
+      }
+
+      const payload: TypingPayload = {
+        conversationId,
+        userId: sessionUserId,
+        isTyping,
+      };
+
+      isTypingRef.current = isTyping;
+      if (!isTyping) {
+        lastTypingHeartbeatAtRef.current = 0;
+      }
+
+      void channel.send({
+        type: "broadcast",
+        event: "typing",
+        payload,
+      });
+    },
+    [conversationId, sessionUserId]
+  );
+
+  const stopTyping = useCallback(() => {
+    clearTypingStopTimer();
+    broadcastTyping(false);
+  }, [broadcastTyping, clearTypingStopTimer]);
+
+  const handleMessageChange = useCallback(
+    (value: string) => {
+      setNewMessage(value);
+
+      if (!session || !conversationId) {
+        return;
+      }
+
+      if (value.trim().length === 0) {
+        stopTyping();
+        return;
+      }
+
+      const now = Date.now();
+      if (
+        !isTypingRef.current ||
+        now - lastTypingHeartbeatAtRef.current >= TYPING_HEARTBEAT_MS
+      ) {
+        lastTypingHeartbeatAtRef.current = now;
+        broadcastTyping(true);
+      }
+
+      clearTypingStopTimer();
+      typingStopTimerRef.current = setTimeout(() => {
+        broadcastTyping(false);
+      }, TYPING_STOP_DELAY_MS);
+    },
+    [broadcastTyping, clearTypingStopTimer, conversationId, session, stopTyping]
+  );
 
   const handleImageSelect = useCallback(
     (file: File) => {
@@ -77,6 +186,33 @@ export function useChatMessages({
     [clearSelectedImage]
   );
 
+  const resolveReplyPreview = useCallback((message: Message | null) => {
+    if (!message) {
+      return null;
+    }
+
+    const trimmedContent = message.content?.trim();
+    if (trimmedContent) {
+      return trimmedContent.length > 120
+        ? `${trimmedContent.slice(0, 120)}...`
+        : trimmedContent;
+    }
+
+    if (message.image_url) {
+      return "Rasm";
+    }
+
+    return "Xabar";
+  }, []);
+
+  const replyToMessage = useMemo(() => {
+    if (!replyToMessageId) {
+      return null;
+    }
+
+    return messages.find((message) => message.id === replyToMessageId) ?? null;
+  }, [messages, replyToMessageId]);
+
   const markConversationAsRead = useCallback(async () => {
     if (!sessionUserId || !conversationId) {
       return;
@@ -95,12 +231,19 @@ export function useChatMessages({
   useEffect(() => {
     return () => {
       clearSelectedImage();
+      clearReplyTarget();
+      stopTyping();
+      clearTypingIndicatorTimer();
     };
-  }, [clearSelectedImage]);
+  }, [clearReplyTarget, clearSelectedImage, clearTypingIndicatorTimer, stopTyping]);
 
   useEffect(() => {
     clearSelectedImage();
-  }, [clearSelectedImage, conversationId]);
+    clearReplyTarget();
+    stopTyping();
+    clearTypingIndicatorTimer();
+    setIsOtherUserTyping(false);
+  }, [clearReplyTarget, clearSelectedImage, clearTypingIndicatorTimer, conversationId, stopTyping]);
 
   useEffect(() => {
     let isMounted = true;
@@ -117,7 +260,7 @@ export function useChatMessages({
 
       const { data, error: fetchError } = await supabase
         .from("messages")
-        .select("id, created_at, user_id, username, content, image_url, conversation_id, read_at")
+        .select("id, created_at, user_id, username, content, image_url, reply_to_id, conversation_id, read_at")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
         .limit(MAX_FETCH_COUNT);
@@ -149,7 +292,11 @@ export function useChatMessages({
     }
 
     const channel: RealtimeChannel = supabase
-      .channel(`messages-${conversationId}`)
+      .channel(`messages-${conversationId}`, {
+        config: {
+          broadcast: { self: false },
+        },
+      })
       .on(
         "postgres_changes",
         {
@@ -212,17 +359,74 @@ export function useChatMessages({
           );
         }
       )
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        const typingPayload = payload as Partial<TypingPayload>;
+        if (!typingPayload) {
+          return;
+        }
+
+        if (typingPayload.conversationId !== conversationId) {
+          return;
+        }
+
+        if (!typingPayload.userId || typingPayload.userId === sessionUserId) {
+          return;
+        }
+
+        if (typingPayload.isTyping) {
+          setIsOtherUserTyping(true);
+          clearTypingIndicatorTimer();
+          typingIndicatorTimerRef.current = setTimeout(() => {
+            setIsOtherUserTyping(false);
+          }, TYPING_INDICATOR_TTL_MS);
+          return;
+        }
+
+        clearTypingIndicatorTimer();
+        setIsOtherUserTyping(false);
+      })
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
           setError("Jonli ulanishda xatolik bo'ldi.");
         }
       });
 
+    channelRef.current = channel;
+
     return () => {
       isMounted = false;
+      clearTypingStopTimer();
+      clearTypingIndicatorTimer();
+      setIsOtherUserTyping(false);
+
+      if (sessionUserId) {
+        const payload: TypingPayload = {
+          conversationId,
+          userId: sessionUserId,
+          isTyping: false,
+        };
+
+        void channel.send({
+          type: "broadcast",
+          event: "typing",
+          payload,
+        });
+      }
+
+      isTypingRef.current = false;
+      lastTypingHeartbeatAtRef.current = 0;
+      if (channelRef.current === channel) {
+        channelRef.current = null;
+      }
       void supabase.removeChannel(channel);
     };
-  }, [conversationId, markConversationAsRead, sessionUserId]);
+  }, [
+    clearTypingIndicatorTimer,
+    clearTypingStopTimer,
+    conversationId,
+    markConversationAsRead,
+    sessionUserId,
+  ]);
 
   const remainingChars = MAX_MESSAGE_LENGTH - newMessage.length;
   const effectiveDisplayName = useMemo(() => {
@@ -260,6 +464,8 @@ export function useChatMessages({
         setError("Suhbat tanlanmagan");
         return;
       }
+
+      stopTyping();
 
       setIsSending(true);
       setError(null);
@@ -301,6 +507,7 @@ export function useChatMessages({
           username: effectiveDisplayName,
           content: trimmedMessage.length > 0 ? trimmedMessage : null,
           image_url: uploadedImageUrl,
+          reply_to_id: replyToMessageId,
           conversation_id: conversationId,
         };
 
@@ -317,6 +524,7 @@ export function useChatMessages({
 
         setNewMessage("");
         clearSelectedImage();
+        clearReplyTarget();
       } finally {
         setIsSending(false);
       }
@@ -324,10 +532,13 @@ export function useChatMessages({
     [
       canSend,
       clearSelectedImage,
+      clearReplyTarget,
       conversationId,
       effectiveDisplayName,
       newMessage,
+      replyToMessageId,
       selectedImageFile,
+      stopTyping,
       session,
     ]
   );
@@ -335,16 +546,23 @@ export function useChatMessages({
   return {
     canSend,
     clearSelectedImage,
+    clearReplyTarget,
     error,
+    handleMessageChange,
     handleImageSelect,
     isLoadingMessages,
+    isOtherUserTyping,
     isSending,
     messages,
     newMessage,
+    replyToAuthor: replyToMessage?.username ?? null,
+    replyToPreview: resolveReplyPreview(replyToMessage),
+    replyToMessageId,
     remainingChars,
     selectedImageName: selectedImageFile?.name ?? null,
     selectedImagePreviewUrl,
     sendMessage,
+    startReply,
     setError,
     setNewMessage,
   };

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 type ChatHeaderProps = {
   avatarUrl?: string | null;
   contactName: string;
+  isTyping?: boolean;
   onBack: () => void;
   onToggleTheme: () => void;
 };
@@ -12,6 +13,7 @@ type ChatHeaderProps = {
 export const ChatHeader = memo(function ChatHeader({
   avatarUrl,
   contactName,
+  isTyping = false,
   onBack,
   onToggleTheme,
 }: ChatHeaderProps) {
@@ -49,7 +51,9 @@ export const ChatHeader = memo(function ChatHeader({
           <p className="truncate text-sm font-semibold text-[var(--foreground)]">
             {contactName}
           </p>
-          <p className="truncate text-xs text-[var(--muted-foreground)]">Hozir onlayn</p>
+          <p className="truncate text-xs text-[var(--muted-foreground)]">
+            {isTyping ? "yozyapti..." : "Hozir onlayn"}
+          </p>
         </div>
 
         <div className="flex-1" />

@@ -5,6 +5,7 @@ export type Message = {
   username: string;
   content: string | null;
   image_url: string | null;
+  reply_to_id: number | null;
   conversation_id: string | null;
   read_at: string | null;
 };
@@ -17,6 +18,7 @@ export type Conversation = {
   last_message_at: string | null;
   other_user?: User;
   last_message?: string;
+  unread_count?: number;
 };
 
 export type User = {

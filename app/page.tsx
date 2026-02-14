@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthCard } from "@/features/chat/components/AuthCard";
 import { ChatHeader } from "@/features/chat/components/ChatHeader";
 import { ChatListScreen } from "@/features/chat/components/ChatListScreen";
@@ -8,7 +8,9 @@ import { MessageComposer } from "@/features/chat/components/MessageComposer";
 import { MessageList } from "@/features/chat/components/MessageList";
 import { ProfileSettingsModal } from "@/features/chat/components/ProfileSettingsModal";
 import { UserSearchModal } from "@/features/chat/components/UserSearchModal";
+import type { Conversation } from "@/features/chat/types";
 import { useAuth } from "@/features/chat/useAuth";
+import { useBrowserNotifications } from "@/features/chat/useBrowserNotifications";
 import { useChatMessages } from "@/features/chat/useChatMessages";
 import { useConversations } from "@/features/chat/useConversations";
 
@@ -33,11 +35,13 @@ function getInitialTheme(): ThemeMode {
 
 export default function Home() {
   const auth = useAuth();
+  const browserNotifications = useBrowserNotifications();
   const [view, setView] = useState<"chats" | "chat">("chats");
   const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const conversationsRef = useRef<Conversation[]>([]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -52,7 +56,42 @@ export default function Home() {
     setTheme((previous) => (previous === "dark" ? "light" : "dark"));
   }, []);
 
-  const conversations = useConversations({ session: auth.session });
+  const handleIncomingMessageNotification = useCallback(
+    ({
+      conversationId,
+      previewText,
+    }: {
+      conversationId: string;
+      previewText: string;
+      senderUserId: string;
+    }) => {
+      if (typeof document === "undefined") {
+        return;
+      }
+
+      if (document.visibilityState === "visible") {
+        return;
+      }
+
+      const matchedConversation = conversationsRef.current.find(
+        (conversation) => conversation.id === conversationId
+      );
+
+      const title =
+        matchedConversation?.other_user?.display_name?.trim() || "Yangi xabar";
+
+      browserNotifications.notify(title, {
+        body: previewText,
+        tag: `conversation-${conversationId}`,
+      });
+    },
+    [browserNotifications]
+  );
+
+  const conversations = useConversations({
+    onIncomingMessage: handleIncomingMessageNotification,
+    session: auth.session,
+  });
   const chat = useChatMessages({
     displayName: auth.displayName,
     session: auth.session,
@@ -80,6 +119,10 @@ export default function Home() {
     setError: setChatError,
     setNewMessage,
   } = chat;
+
+  useEffect(() => {
+    conversationsRef.current = conversations.conversations;
+  }, [conversations.conversations]);
 
   const selectedConversation = useMemo(
     () =>
@@ -117,6 +160,23 @@ export default function Home() {
   const handleSignOutClick = useCallback(() => {
     void handleSignOut();
   }, [handleSignOut]);
+
+  const handleEnableNotifications = useCallback(async () => {
+    const permission = await browserNotifications.requestPermission();
+    if (permission === "denied") {
+      setChatError("Brauzer bildirishnomasiga ruxsat berilmagan.");
+      return;
+    }
+
+    if (permission === "unsupported") {
+      setChatError("Bu brauzer bildirishnomalarni qo'llab-quvvatlamaydi.");
+      return;
+    }
+
+    if (permission === "granted") {
+      setChatError(null);
+    }
+  }, [browserNotifications, setChatError]);
 
   const handleSelectUser = useCallback(async (user: { id: string }) => {
     const convId = await createConversation(user.id);
@@ -264,6 +324,8 @@ export default function Home() {
           <ChatListScreen
             conversations={conversations.conversations}
             isLoading={conversations.isLoading}
+            notificationPermission={browserNotifications.permission}
+            onEnableNotifications={handleEnableNotifications}
             onOpenChat={handleOpenChat}
             onNewChat={handleOpenSearchModal}
             onOpenProfile={handleOpenProfileModal}
@@ -303,6 +365,7 @@ export default function Home() {
               <ChatHeader
                 avatarUrl={activeContactAvatar}
                 contactName={activeContactName}
+                isTyping={chat.isOtherUserTyping}
                 onBack={handleBackToChats}
                 onToggleTheme={toggleTheme}
               />
@@ -311,6 +374,7 @@ export default function Home() {
                 currentUserId={auth.session.user.id}
                 isLoading={chat.isLoadingMessages}
                 messages={chat.messages}
+                onReply={chat.startReply}
               />
 
               <MessageComposer
@@ -319,7 +383,10 @@ export default function Home() {
                 isSending={chat.isSending}
                 newMessage={chat.newMessage}
                 remainingChars={chat.remainingChars}
-                onChange={chat.setNewMessage}
+                replyToAuthor={chat.replyToAuthor}
+                replyToPreview={chat.replyToPreview}
+                onChange={chat.handleMessageChange}
+                onClearReply={chat.clearReplyTarget}
                 onClearImage={chat.clearSelectedImage}
                 onImageSelect={chat.handleImageSelect}
                 onSubmit={handleSendMessage}

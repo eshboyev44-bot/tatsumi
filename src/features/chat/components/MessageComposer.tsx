@@ -8,9 +8,12 @@ type MessageComposerProps = {
   isSending: boolean;
   newMessage: string;
   remainingChars: number;
+  replyToAuthor: string | null;
+  replyToPreview: string | null;
   selectedImageName: string | null;
   selectedImagePreviewUrl: string | null;
   onChange: (value: string) => void;
+  onClearReply: () => void;
   onClearImage: () => void;
   onImageSelect: (file: File) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -22,9 +25,12 @@ export function MessageComposer({
   isSending,
   newMessage,
   remainingChars,
+  replyToAuthor,
+  replyToPreview,
   selectedImageName,
   selectedImagePreviewUrl,
   onChange,
+  onClearReply,
   onClearImage,
   onImageSelect,
   onSubmit,
@@ -58,6 +64,44 @@ export function MessageComposer({
   return (
     <footer className="liquid-topbar relative z-10 shrink-0 border-t border-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 md:border-[var(--border)] md:px-5 md:pb-4">
       <form onSubmit={onSubmit} className="space-y-2">
+        {replyToPreview && (
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-2.5">
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold text-[var(--accent)]">
+                  {replyToAuthor ?? "Javob"}
+                </p>
+                <p className="mt-0.5 truncate text-sm text-[var(--muted-foreground)]">
+                  {replyToPreview}
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={onClearReply}
+                className="size-8 rounded-full text-[var(--muted-foreground)]"
+                aria-label="Javobni bekor qilish"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="size-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </Button>
+            </div>
+          </div>
+        )}
+
         {selectedImagePreviewUrl && (
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-2">
             <div className="flex items-center gap-3">

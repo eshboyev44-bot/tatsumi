@@ -5,6 +5,11 @@ import type { Conversation, User } from "@/features/chat/types";
 
 type UseConversationsParams = {
   session: Session | null;
+  onIncomingMessage?: (params: {
+    conversationId: string;
+    senderUserId: string;
+    previewText: string;
+  }) => void;
 };
 
 type LastMessageCacheEntry = {
@@ -18,7 +23,10 @@ function getOtherUserId(conversation: Conversation, currentUserId: string) {
     : conversation.user1_id;
 }
 
-export function useConversations({ session }: UseConversationsParams) {
+export function useConversations({
+  onIncomingMessage,
+  session,
+}: UseConversationsParams) {
   const sessionUserId = session?.user.id ?? null;
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -109,6 +117,41 @@ export function useConversations({ session }: UseConversationsParams) {
     []
   );
 
+  const fetchUnreadCounts = useCallback(
+    async (conversationIds: string[]) => {
+      const unreadCounts = new Map<string, number>();
+
+      if (!sessionUserId || conversationIds.length === 0) {
+        return unreadCounts;
+      }
+
+      const { data: unreadRows, error: unreadError } = await supabase
+        .from("messages")
+        .select("conversation_id")
+        .in("conversation_id", conversationIds)
+        .is("read_at", null)
+        .neq("user_id", sessionUserId);
+
+      if (unreadError) {
+        console.error("Unread count fetch failed:", unreadError.message);
+        return unreadCounts;
+      }
+
+      for (const row of (unreadRows ?? []) as Array<{ conversation_id: string | null }>) {
+        if (!row.conversation_id) {
+          continue;
+        }
+        unreadCounts.set(
+          row.conversation_id,
+          (unreadCounts.get(row.conversation_id) ?? 0) + 1
+        );
+      }
+
+      return unreadCounts;
+    },
+    [sessionUserId]
+  );
+
   const fetchConversations = useCallback(async () => {
     if (!sessionUserId) {
       return;
@@ -142,14 +185,16 @@ export function useConversations({ session }: UseConversationsParams) {
       getOtherUserId(conversation, sessionUserId)
     );
 
-    await fetchMissingUsers(otherUserIds);
-
     const staleConversations = nextConversations.filter((conversation) => {
       const cached = lastMessageCacheRef.current.get(conversation.id);
       return !cached || cached.lastMessageAt !== conversation.last_message_at;
     });
 
-    await fetchStaleLastMessages(staleConversations);
+    const [unreadCounts] = await Promise.all([
+      fetchUnreadCounts(nextConversations.map((conversation) => conversation.id)),
+      fetchMissingUsers(otherUserIds),
+      fetchStaleLastMessages(staleConversations),
+    ]);
 
     if (requestId !== requestIdRef.current) {
       return;
@@ -163,6 +208,7 @@ export function useConversations({ session }: UseConversationsParams) {
         ...conversation,
         other_user: userCacheRef.current.get(otherUserId),
         last_message: messageCacheEntry?.text,
+        unread_count: unreadCounts.get(conversation.id) ?? 0,
       };
     });
 
@@ -170,7 +216,7 @@ export function useConversations({ session }: UseConversationsParams) {
     setError(null);
     setConversations(conversationsWithUsers);
     setIsLoading(false);
-  }, [fetchMissingUsers, fetchStaleLastMessages, sessionUserId]);
+  }, [fetchMissingUsers, fetchStaleLastMessages, fetchUnreadCounts, sessionUserId]);
 
   useEffect(() => {
     const handleSessionChange = async () => {
@@ -232,6 +278,59 @@ export function useConversations({ session }: UseConversationsParams) {
           scheduleRefresh();
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messages",
+        },
+        (payload) => {
+          const nextMessage = payload.new as { conversation_id?: string | null } | null;
+          const prevMessage = payload.old as { conversation_id?: string | null } | null;
+
+          if (payload.eventType === "INSERT" && nextMessage?.conversation_id) {
+            const senderUserId = payload.new && "user_id" in payload.new
+              ? String((payload.new as { user_id?: string | null }).user_id ?? "")
+              : "";
+
+            if (
+              senderUserId &&
+              senderUserId !== sessionUserId &&
+              onIncomingMessage
+            ) {
+              const content =
+                payload.new && "content" in payload.new
+                  ? (payload.new as { content?: string | null }).content
+                  : null;
+              const imageUrl =
+                payload.new && "image_url" in payload.new
+                  ? (payload.new as { image_url?: string | null }).image_url
+                  : null;
+              const trimmedContent = content?.trim();
+              const previewText = trimmedContent
+                ? trimmedContent.length > 120
+                  ? `${trimmedContent.slice(0, 120)}...`
+                  : trimmedContent
+                : imageUrl
+                  ? "Rasm yuborildi"
+                  : "Yangi xabar";
+
+              onIncomingMessage({
+                conversationId: nextMessage.conversation_id,
+                senderUserId,
+                previewText,
+              });
+            }
+          }
+
+          if (!nextMessage?.conversation_id && !prevMessage?.conversation_id) {
+            return;
+          }
+
+          scheduleRefresh();
+        }
+      )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
           setError("Suhbatlar jonli ulanishida xatolik bo'ldi.");
@@ -245,7 +344,7 @@ export function useConversations({ session }: UseConversationsParams) {
       }
       void supabase.removeChannel(channel);
     };
-  }, [fetchConversations, sessionUserId]);
+  }, [fetchConversations, onIncomingMessage, sessionUserId]);
 
   const createConversation = useCallback(
     async (otherUserId: string): Promise<string | null> => {

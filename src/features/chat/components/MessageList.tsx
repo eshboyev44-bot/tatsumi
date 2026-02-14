@@ -7,6 +7,7 @@ type MessageListProps = {
   currentUserId: string;
   isLoading: boolean;
   messages: Message[];
+  onReply: (message: Message) => void;
 };
 
 function formatTime(dateString: string) {
@@ -28,6 +29,7 @@ export const MessageList = memo(function MessageList({
   currentUserId,
   isLoading,
   messages,
+  onReply,
 }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const previousMessageCountRef = useRef(0);
@@ -50,6 +52,14 @@ export const MessageList = memo(function MessageList({
       })),
     [currentUserId, messages]
   );
+
+  const messagesById = useMemo(() => {
+    const map = new Map<number, Message>();
+    for (const message of messages) {
+      map.set(message.id, message);
+    }
+    return map;
+  }, [messages]);
 
   const dayChipLabel = useMemo(() => {
     if (messages.length === 0) {
@@ -148,6 +158,17 @@ export const MessageList = memo(function MessageList({
             const hasImage =
               typeof message.image_url === "string" && message.image_url.trim().length > 0;
             const imageUrl = hasImage ? message.image_url?.trim() ?? null : null;
+            const repliedMessage =
+              typeof message.reply_to_id === "number"
+                ? messagesById.get(message.reply_to_id) ?? null
+                : null;
+            const repliedAuthor = repliedMessage?.username ?? "Javob berilgan xabar";
+            const repliedContent = repliedMessage?.content?.trim();
+            const repliedPreview = repliedContent
+              ? repliedContent
+              : repliedMessage?.image_url
+                ? "Rasm"
+                : "Xabar";
 
             return (
               <article
@@ -160,6 +181,17 @@ export const MessageList = memo(function MessageList({
                       : "message-bubble--theirs rounded-bl-md"
                     }`}
                 >
+                  {message.reply_to_id && (
+                    <div className="mb-2 rounded-xl border border-[var(--border)] bg-[var(--surface)]/40 px-2.5 py-1.5">
+                      <p className="truncate text-[11px] font-semibold text-[var(--accent)]">
+                        {repliedAuthor}
+                      </p>
+                      <p className="truncate text-xs text-[var(--muted-foreground)]">
+                        {repliedPreview}
+                      </p>
+                    </div>
+                  )}
+
                   {imageUrl && (
                     <button
                       type="button"
@@ -184,6 +216,13 @@ export const MessageList = memo(function MessageList({
                   )}
 
                   <div className="mt-1.5 flex items-center justify-end gap-1 text-[11px] text-[var(--muted-foreground)]">
+                    <button
+                      type="button"
+                      onClick={() => onReply(message)}
+                      className="mr-1 cursor-pointer rounded-full px-2 py-0.5 text-[10px] font-medium text-[var(--muted-foreground)] transition hover:bg-[var(--surface)]"
+                    >
+                      Javob
+                    </button>
                     <span>{message.time}</span>
                     {message.isMine && (
                       message.read_at ? (

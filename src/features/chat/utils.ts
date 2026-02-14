@@ -68,6 +68,10 @@ export function toFriendlyErrorMessage(rawMessage: string) {
     return "Supabase jadvalida `image_url` ustuni yo'q. SQL muharririda `supabase/migration_image_messages.sql` ni ishga tushiring.";
   }
 
+  if (rawMessage.includes("Could not find the 'reply_to_id' column")) {
+    return "Supabase jadvalida `reply_to_id` ustuni yo'q. SQL muharririda `supabase/migration_message_replies.sql` ni ishga tushiring.";
+  }
+
   if (rawMessage.includes("new row violates row-level security policy")) {
     return "Xabar yuborish uchun login qilingan bo'lishi kerak.";
   }
