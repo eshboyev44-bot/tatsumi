@@ -157,6 +157,7 @@ body {
   background:
     linear-gradient(160deg, var(--glass-shell-a), var(--glass-shell-b)),
     linear-gradient(60deg, var(--glass-shell-tint-a), var(--glass-shell-tint-b));
+  -webkit-backdrop-filter: blur(30px) saturate(140%);
   backdrop-filter: blur(30px) saturate(140%);
   box-shadow:
     var(--glass-shell-shadow),
@@ -166,6 +167,7 @@ body {
 .liquid-panel {
   border: 1px solid var(--border);
   background: linear-gradient(145deg, var(--glass-panel-a), var(--glass-panel-b));
+  -webkit-backdrop-filter: blur(26px) saturate(130%);
   backdrop-filter: blur(26px) saturate(130%);
   box-shadow:
     var(--glass-panel-shadow),
@@ -174,12 +176,14 @@ body {
 
 .liquid-topbar {
   background: linear-gradient(160deg, var(--glass-topbar-a), var(--glass-topbar-b));
+  -webkit-backdrop-filter: blur(22px);
   backdrop-filter: blur(22px);
 }
 
 .liquid-list-item {
   border: 1px solid var(--border);
   background: linear-gradient(140deg, var(--glass-list-a), var(--glass-list-b));
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   box-shadow: var(--glass-list-shadow);
 }
@@ -216,6 +220,7 @@ body {
   border: 1px solid var(--message-chip-border);
   background: var(--message-chip-bg);
   color: var(--muted-foreground);
+  -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
 }
 
@@ -223,13 +228,28 @@ body {
   border: 1px solid var(--message-chip-border);
   background: var(--message-chip-bg);
   color: var(--muted-foreground);
+  -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
 }
 
 .message-bubble {
   border: 1px solid;
   box-shadow: 0 10px 28px rgba(42, 56, 80, 0.12);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
+}
+
+@media (max-width: 767px) {
+  .liquid-shell,
+  .liquid-panel,
+  .liquid-topbar,
+  .liquid-list-item,
+  .message-day-chip,
+  .message-empty-state,
+  .message-bubble {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 .message-bubble--mine {

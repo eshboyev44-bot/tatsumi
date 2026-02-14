@@ -1,15 +1,22 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { memo } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
 type ChatHeaderProps = {
+  avatarUrl?: string | null;
   contactName: string;
   onBack: () => void;
   onToggleTheme: () => void;
 };
 
-export function ChatHeader({ contactName, onBack, onToggleTheme }: ChatHeaderProps) {
+export const ChatHeader = memo(function ChatHeader({
+  avatarUrl,
+  contactName,
+  onBack,
+  onToggleTheme,
+}: ChatHeaderProps) {
   return (
-    <header className="liquid-topbar relative z-10 shrink-0 border-b border-[var(--border)] px-4 py-3 md:px-5">
+    <header className="liquid-topbar relative z-10 shrink-0 border-b border-transparent px-4 py-3 md:border-[var(--border)] md:px-5">
       <div className="flex items-center gap-3">
         <Button
           type="button"
@@ -34,6 +41,7 @@ export function ChatHeader({ contactName, onBack, onToggleTheme }: ChatHeaderPro
         </Button>
 
         <Avatar className="size-11 bg-[var(--avatar-bg)] text-white">
+          <AvatarImage src={avatarUrl ?? undefined} alt={contactName} />
           <AvatarFallback>{contactName.slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
 
@@ -91,4 +99,4 @@ export function ChatHeader({ contactName, onBack, onToggleTheme }: ChatHeaderPro
       </div>
     </header>
   );
-}
+});

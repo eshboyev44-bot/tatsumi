@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { AuthCard } from "@/features/chat/components/AuthCard";
 import { ChatHeader } from "@/features/chat/components/ChatHeader";
 import { ChatListScreen } from "@/features/chat/components/ChatListScreen";
 import { MessageComposer } from "@/features/chat/components/MessageComposer";
 import { MessageList } from "@/features/chat/components/MessageList";
+import { ProfileSettingsModal } from "@/features/chat/components/ProfileSettingsModal";
 import { UserSearchModal } from "@/features/chat/components/UserSearchModal";
 import { useAuth } from "@/features/chat/useAuth";
 import { useChatMessages } from "@/features/chat/useChatMessages";
@@ -36,6 +36,7 @@ export default function Home() {
   const [view, setView] = useState<"chats" | "chat">("chats");
   const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   useEffect(() => {
@@ -47,9 +48,9 @@ export default function Home() {
     window.localStorage.setItem("theme", theme);
   }, [theme]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme((previous) => (previous === "dark" ? "light" : "dark"));
-  };
+  }, []);
 
   const conversations = useConversations({ session: auth.session });
   const chat = useChatMessages({
@@ -57,41 +58,108 @@ export default function Home() {
     session: auth.session,
     conversationId: selectedConversationId,
   });
+  const { createConversation } = conversations;
+  const {
+    clearSettingsFeedback,
+    handleAuthSubmit: submitAuth,
+    isUpdatingPassword,
+    isUpdatingProfile,
+    isUploadingAvatar,
+    removeAvatar,
+    settingsError,
+    settingsMessage,
+    signOut,
+    toggleAuthMode,
+    updatePassword,
+    updateProfile,
+    uploadAvatar,
+  } = auth;
+  const { sendMessage, setError: setChatError, setNewMessage } = chat;
 
-  const selectedConversation = conversations.conversations.find(
-    (c) => c.id === selectedConversationId
+  const selectedConversation = useMemo(
+    () =>
+      conversations.conversations.find(
+        (conversation) => conversation.id === selectedConversationId
+      ),
+    [conversations.conversations, selectedConversationId]
   );
 
-  const activeContactName = selectedConversation?.other_user?.display_name ||
-    auth.displayName.trim() ||
-    auth.session?.user.email?.split("@")[0]?.trim() ||
-    "Conversation";
+  const activeContactName = useMemo(
+    () =>
+      selectedConversation?.other_user?.display_name ||
+      auth.displayName.trim() ||
+      auth.session?.user.email?.split("@")[0]?.trim() ||
+      "Conversation",
+    [auth.displayName, auth.session?.user.email, selectedConversation?.other_user?.display_name]
+  );
+  const activeContactAvatar = selectedConversation?.other_user?.avatar_url ?? null;
+  const hasSelectedConversation = selectedConversationId !== null;
 
-  const handleSignOut = async () => {
-    const signOutError = await auth.signOut();
+  const handleSignOut = useCallback(async () => {
+    const signOutError = await signOut();
     if (signOutError) {
-      chat.setError(`Chiqishda xatolik: ${signOutError}`);
+      setChatError(`Chiqishda xatolik: ${signOutError}`);
       return;
     }
 
     setView("chats");
     setSelectedConversationId(null);
-    chat.setError(null);
-    chat.setNewMessage("");
-  };
+    setChatError(null);
+    setNewMessage("");
+  }, [setChatError, setNewMessage, signOut]);
 
-  const handleSelectUser = async (user: { id: string }) => {
-    const convId = await conversations.createConversation(user.id);
+  const handleSignOutClick = useCallback(() => {
+    void handleSignOut();
+  }, [handleSignOut]);
+
+  const handleSelectUser = useCallback(async (user: { id: string }) => {
+    const convId = await createConversation(user.id);
     if (convId) {
       setSelectedConversationId(convId);
       setView("chat");
     }
-  };
+  }, [createConversation]);
 
-  const handleOpenChat = (conversationId: string) => {
+  const handleOpenChat = useCallback((conversationId: string) => {
     setSelectedConversationId(conversationId);
     setView("chat");
-  };
+  }, []);
+
+  const handleBackToChats = useCallback(() => {
+    setView("chats");
+  }, []);
+
+  const handleOpenSearchModal = useCallback(() => {
+    setIsSearchModalOpen(true);
+  }, []);
+
+  const handleCloseSearchModal = useCallback(() => {
+    setIsSearchModalOpen(false);
+  }, []);
+
+  const handleOpenProfileModal = useCallback(() => {
+    clearSettingsFeedback();
+    setIsProfileModalOpen(true);
+  }, [clearSettingsFeedback]);
+
+  const handleCloseProfileModal = useCallback(() => {
+    setIsProfileModalOpen(false);
+    clearSettingsFeedback();
+  }, [clearSettingsFeedback]);
+
+  const handleAuthSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      void submitAuth(event);
+    },
+    [submitAuth]
+  );
+
+  const handleSendMessage = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      void sendMessage(event);
+    },
+    [sendMessage]
+  );
 
   if (auth.isAuthLoading) {
     return (
@@ -124,10 +192,8 @@ export default function Home() {
           onDisplayNameChange={auth.setDisplayName}
           onEmailChange={auth.setEmail}
           onPasswordChange={auth.setPassword}
-          onSubmit={(event) => {
-            void auth.handleAuthSubmit(event);
-          }}
-          onToggleMode={auth.toggleAuthMode}
+          onSubmit={handleAuthSubmit}
+          onToggleMode={toggleAuthMode}
         />
       </main>
     );
@@ -139,7 +205,7 @@ export default function Home() {
       <div className="liquid-orb liquid-orb--two" />
       <div className="liquid-orb liquid-orb--three" />
 
-      <section className="liquid-shell relative z-10 mx-auto flex h-[100svh] w-full max-w-6xl overflow-hidden rounded-none md:rounded-[2rem]">
+      <section className="liquid-shell relative z-10 mx-auto flex h-[100svh] w-full max-w-6xl overflow-hidden rounded-none border-transparent md:rounded-[2rem] md:border-[var(--border)]">
         <aside
           className={`w-full min-h-0 border-[var(--border)] md:w-[340px] md:shrink-0 md:border-r ${view === "chat" ? "hidden md:flex" : "flex"
             } flex-col`}
@@ -148,45 +214,73 @@ export default function Home() {
             conversations={conversations.conversations}
             isLoading={conversations.isLoading}
             onOpenChat={handleOpenChat}
-            onNewChat={() => setIsSearchModalOpen(true)}
-            onSignOut={() => {
-              void handleSignOut();
-            }}
+            onNewChat={handleOpenSearchModal}
+            onOpenProfile={handleOpenProfileModal}
+            onSignOut={handleSignOutClick}
           />
         </aside>
 
+        {isProfileModalOpen && (
+          <ProfileSettingsModal
+            avatarUrl={auth.avatarUrl}
+            displayName={auth.displayName}
+            email={auth.session.user.email ?? ""}
+            isUpdatingPassword={isUpdatingPassword}
+            isUpdatingProfile={isUpdatingProfile}
+            isUploadingAvatar={isUploadingAvatar}
+            onClose={handleCloseProfileModal}
+            onRemoveAvatar={removeAvatar}
+            onSaveProfile={updateProfile}
+            onUpdatePassword={updatePassword}
+            onUploadAvatar={uploadAvatar}
+            settingsError={settingsError}
+            settingsMessage={settingsMessage}
+          />
+        )}
+
         <UserSearchModal
           isOpen={isSearchModalOpen}
-          onClose={() => setIsSearchModalOpen(false)}
+          onClose={handleCloseSearchModal}
           onSelectUser={handleSelectUser}
         />
 
         <section
           className={`${view === "chat" ? "flex" : "hidden md:flex"} min-h-0 flex-1 flex-col`}
         >
-          <ChatHeader
-            contactName={activeContactName}
-            onBack={() => setView("chats")}
-            onToggleTheme={toggleTheme}
-          />
+          {hasSelectedConversation ? (
+            <>
+              <ChatHeader
+                avatarUrl={activeContactAvatar}
+                contactName={activeContactName}
+                onBack={handleBackToChats}
+                onToggleTheme={toggleTheme}
+              />
 
-          <MessageList
-            currentUserId={auth.session.user.id}
-            isLoading={chat.isLoadingMessages}
-            messages={chat.messages}
-          />
+              <MessageList
+                currentUserId={auth.session.user.id}
+                isLoading={chat.isLoadingMessages}
+                messages={chat.messages}
+              />
 
-          <MessageComposer
-            canSend={chat.canSend}
-            error={chat.error}
-            isSending={chat.isSending}
-            newMessage={chat.newMessage}
-            remainingChars={chat.remainingChars}
-            onChange={chat.setNewMessage}
-            onSubmit={(event) => {
-              void chat.sendMessage(event);
-            }}
-          />
+              <MessageComposer
+                canSend={chat.canSend}
+                error={chat.error}
+                isSending={chat.isSending}
+                newMessage={chat.newMessage}
+                remainingChars={chat.remainingChars}
+                onChange={chat.setNewMessage}
+                onSubmit={handleSendMessage}
+              />
+            </>
+          ) : (
+            <section className="chat-wallpaper relative min-h-0 flex-1">
+              <div className="absolute left-1/2 top-1/2 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 px-4 text-center">
+                <span className="message-day-chip inline-flex rounded-full px-4 py-1.5 text-xs sm:text-sm">
+                  Kimga yozmoqchi ekaningizni tanlang
+                </span>
+              </div>
+            </section>
+          )}
         </section>
       </section>
     </main >

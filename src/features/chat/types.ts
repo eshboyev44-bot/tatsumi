@@ -22,6 +22,7 @@ export type User = {
   id: string;
   email: string;
   display_name: string;
+  avatar_url?: string | null;
 };
 
 export type AuthMode = "signin" | "signup";

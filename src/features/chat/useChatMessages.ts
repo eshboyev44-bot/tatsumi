@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { RealtimeChannel, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import type { Message } from "@/features/chat/types";
@@ -21,6 +21,7 @@ export function useChatMessages({
   session,
   conversationId,
 }: UseChatMessagesParams) {
+  const sessionUserId = session?.user.id;
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
@@ -33,9 +34,12 @@ export function useChatMessages({
     const fetchMessages = async () => {
       if (!conversationId) {
         setMessages([]);
+        setError(null);
         setIsLoadingMessages(false);
         return;
       }
+
+      setIsLoadingMessages(true);
 
       const { data, error: fetchError } = await supabase
         .from("messages")
@@ -56,10 +60,10 @@ export function useChatMessages({
         setMessages(data ?? []);
 
         // Auto-mark messages as read when conversation is opened
-        if (session?.user?.id && conversationId) {
+        if (sessionUserId && conversationId) {
           void supabase.rpc("mark_messages_as_read", {
             p_conversation_id: conversationId,
-            p_user_id: session.user.id,
+            p_user_id: sessionUserId,
           });
         }
       }
@@ -87,7 +91,26 @@ export function useChatMessages({
         },
         (payload) => {
           const incomingMessage = payload.new as Message;
-          setMessages((previous) => mergeMessages(previous, [incomingMessage]));
+          setMessages((previous) => {
+            if (previous.some((message) => message.id === incomingMessage.id)) {
+              return previous;
+            }
+
+            const lastMessage = previous[previous.length - 1];
+            if (!lastMessage) {
+              return [incomingMessage];
+            }
+
+            const isAlreadySorted =
+              new Date(lastMessage.created_at).getTime() <=
+              new Date(incomingMessage.created_at).getTime();
+
+            if (isAlreadySorted) {
+              return [...previous, incomingMessage];
+            }
+
+            return mergeMessages(previous, [incomingMessage]);
+          });
         }
       )
       .on(
@@ -117,7 +140,7 @@ export function useChatMessages({
       isMounted = false;
       void supabase.removeChannel(channel);
     };
-  }, [conversationId]);
+  }, [conversationId, sessionUserId]);
 
   const remainingChars = MAX_MESSAGE_LENGTH - newMessage.length;
   const effectiveDisplayName = useMemo(() => {
@@ -138,47 +161,50 @@ export function useChatMessages({
     );
   }, [effectiveDisplayName, isSending, newMessage, remainingChars, session]);
 
-  const sendMessage = async (event?: FormEvent<HTMLFormElement>) => {
-    event?.preventDefault();
+  const sendMessage = useCallback(
+    async (event?: FormEvent<HTMLFormElement>) => {
+      event?.preventDefault();
 
-    if (!session) {
-      setError("Xabar yuborish uchun avval login qiling.");
-      return;
-    }
+      if (!session) {
+        setError("Xabar yuborish uchun avval login qiling.");
+        return;
+      }
 
-    if (!canSend) {
-      return;
-    }
+      if (!canSend) {
+        return;
+      }
 
-    if (!conversationId) {
-      setError("Suhbat tanlanmagan");
-      return;
-    }
+      if (!conversationId) {
+        setError("Suhbat tanlanmagan");
+        return;
+      }
 
-    const payload = {
-      user_id: session.user.id,
-      username: effectiveDisplayName,
-      content: newMessage.trim(),
-      conversation_id: conversationId,
-    };
+      const payload = {
+        user_id: session.user.id,
+        username: effectiveDisplayName,
+        content: newMessage.trim(),
+        conversation_id: conversationId,
+      };
 
-    setIsSending(true);
-    setError(null);
+      setIsSending(true);
+      setError(null);
 
-    const { error: insertError } = await supabase
-      .from("messages")
-      .insert([payload]);
+      const { error: insertError } = await supabase
+        .from("messages")
+        .insert([payload]);
 
-    if (insertError) {
-      setError(
-        `Xabar yuborishda xatolik: ${toFriendlyErrorMessage(insertError.message)}`
-      );
-    } else {
-      setNewMessage("");
-    }
+      if (insertError) {
+        setError(
+          `Xabar yuborishda xatolik: ${toFriendlyErrorMessage(insertError.message)}`
+        );
+      } else {
+        setNewMessage("");
+      }
 
-    setIsSending(false);
-  };
+      setIsSending(false);
+    },
+    [canSend, conversationId, effectiveDisplayName, newMessage, session]
+  );
 
   return {
     canSend,

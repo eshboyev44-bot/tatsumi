@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { HTMLAttributes, ImgHTMLAttributes, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -27,13 +26,14 @@ export function AvatarImage({ className, alt, ...props }: AvatarImageProps) {
   }
 
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src={src}
       alt={alt ?? ""}
-      fill
-      sizes="40px"
-      className={cn("size-full object-cover", className)}
+      className={cn("absolute inset-0 size-full object-cover", className)}
       onError={() => setFailed(true)}
+      loading={props.loading ?? "lazy"}
+      decoding="async"
     />
   );
 }

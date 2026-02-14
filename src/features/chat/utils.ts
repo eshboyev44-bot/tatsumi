@@ -22,6 +22,20 @@ export function resolveDisplayName(session: Session | null) {
   return "User";
 }
 
+export function resolveAvatarUrl(session: Session | null) {
+  if (!session) {
+    return null;
+  }
+
+  const rawAvatarUrl = session.user.user_metadata?.avatar_url;
+  if (typeof rawAvatarUrl !== "string") {
+    return null;
+  }
+
+  const trimmedAvatarUrl = rawAvatarUrl.trim();
+  return trimmedAvatarUrl.length > 0 ? trimmedAvatarUrl : null;
+}
+
 export function mergeMessages(previous: Message[], incoming: Message[]) {
   const byId = new Map<number, Message>();
 

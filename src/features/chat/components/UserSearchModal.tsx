@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUserSearch } from "@/features/chat/useUserSearch";
@@ -89,15 +90,19 @@ export function UserSearchModal({
                     {users.map((user) => (
                         <button
                             key={user.id}
+                            type="button"
                             onClick={() => {
                                 onSelectUser(user);
                                 onClose();
                             }}
                             className="liquid-list-item flex w-full cursor-pointer items-center gap-3 rounded-xl p-3 text-left transition"
                         >
-                            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--avatar-bg)] text-sm font-semibold text-[var(--accent)]">
-                                {user.display_name.charAt(0).toUpperCase()}
-                            </div>
+                            <Avatar className="size-10 shrink-0 bg-[var(--avatar-bg)] text-white">
+                                <AvatarImage src={user.avatar_url ?? undefined} alt={user.display_name} />
+                                <AvatarFallback>
+                                    {user.display_name.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                            </Avatar>
                             <div className="min-w-0 flex-1">
                                 <p className="truncate font-medium text-[var(--foreground)]">
                                     {user.display_name}

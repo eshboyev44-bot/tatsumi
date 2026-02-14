@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Message } from "@/features/chat/types";
 
@@ -23,12 +23,30 @@ function formatDayChip(dateString: string) {
   });
 }
 
-export function MessageList({
+export const MessageList = memo(function MessageList({
   currentUserId,
   isLoading,
   messages,
 }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const previousMessageCountRef = useRef(0);
+
+  const messageRows = useMemo(
+    () =>
+      messages.map((message) => ({
+        ...message,
+        isMine: message.user_id === currentUserId,
+        time: formatTime(message.created_at),
+      })),
+    [currentUserId, messages]
+  );
+
+  const dayChipLabel = useMemo(() => {
+    if (messages.length === 0) {
+      return null;
+    }
+    return formatDayChip(messages[messages.length - 1].created_at);
+  }, [messages]);
 
   useEffect(() => {
     if (isLoading) {
@@ -40,8 +58,20 @@ export function MessageList({
       return;
     }
 
-    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
-  }, [isLoading, messages]);
+    const isInitialLoad = previousMessageCountRef.current === 0;
+    const hasNewMessages = messages.length > previousMessageCountRef.current;
+    const distanceToBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+
+    if (isInitialLoad || (hasNewMessages && distanceToBottom < 140)) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: isInitialLoad ? "auto" : "smooth",
+      });
+    }
+
+    previousMessageCountRef.current = messages.length;
+  }, [isLoading, messages.length]);
 
   return (
     <ScrollArea
@@ -54,32 +84,27 @@ export function MessageList({
         </p>
       )}
 
-      {!isLoading && messages.length > 0 && (
+      {!isLoading && dayChipLabel && (
         <div className="mb-4 flex justify-center">
-          <span className="message-day-chip rounded-full px-4 py-1 text-xs">
-            {formatDayChip(messages[messages.length - 1].created_at)}
-          </span>
+          <span className="message-day-chip rounded-full px-4 py-1 text-xs">{dayChipLabel}</span>
         </div>
       )}
 
-      {!isLoading && messages.length === 0 && (
+      {!isLoading && messageRows.length === 0 && (
         <div className="message-empty-state mx-auto mt-10 max-w-sm rounded-2xl px-4 py-3 text-center text-sm">
           Hali xabar yo&apos;q. Birinchi xabarni yuboring.
         </div>
       )}
 
       <div className="space-y-2.5">
-        {messages.map((message) => {
-          const isMine = message.user_id === currentUserId;
-          const time = formatTime(message.created_at);
-
+        {messageRows.map((message) => {
           return (
             <article
               key={message.id}
-              className={`message-pop flex ${isMine ? "justify-end" : "justify-start"}`}
+              className={`message-pop flex ${message.isMine ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`message-bubble max-w-[86%] rounded-2xl px-3.5 py-2.5 md:max-w-[70%] ${isMine
+                className={`message-bubble max-w-[86%] rounded-2xl px-3.5 py-2.5 md:max-w-[70%] ${message.isMine
                     ? "message-bubble--mine rounded-br-md"
                     : "message-bubble--theirs rounded-bl-md"
                   }`}
@@ -89,8 +114,8 @@ export function MessageList({
                 </p>
 
                 <div className="mt-1.5 flex items-center justify-end gap-1 text-[11px] text-[var(--muted-foreground)]">
-                  <span>{time}</span>
-                  {isMine && (
+                  <span>{message.time}</span>
+                  {message.isMine && (
                     message.read_at ? (
                       // Double checkmark - message read
                       <svg
@@ -130,4 +155,4 @@ export function MessageList({
       </div>
     </ScrollArea>
   );
-}
+});
