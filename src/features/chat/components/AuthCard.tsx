@@ -33,19 +33,19 @@ export function AuthCard({
   return (
     <section className="liquid-panel relative z-10 w-full max-w-[460px] rounded-[2rem] p-5 md:p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted-foreground)]">
-        Liquid Chat
+        Tatsumi Suhbat
       </p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--foreground)] md:text-4xl">
-        {authMode === "signin" ? "Welcome back" : "Create account"}
+        {authMode === "signin" ? "Xush kelibsiz" : "Akkaunt yaratish"}
       </h1>
       <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-        Supabase Auth bilan xavfsiz kirish. Realtime chat darhol ishlaydi.
+        Supabase orqali xavfsiz kirish. Real vaqtli suhbat darhol ishlaydi.
       </p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
         {authMode === "signup" && (
           <label className="flex flex-col gap-1.5 text-sm text-[var(--muted-foreground)]">
-            Display name
+            Ko&apos;rinadigan ism
             <Input
               value={displayName}
               onChange={(event) => onDisplayNameChange(event.target.value)}
@@ -57,12 +57,12 @@ export function AuthCard({
         )}
 
         <label className="flex flex-col gap-1.5 text-sm text-[var(--muted-foreground)]">
-          Email
+          Elektron pochta
           <Input
             type="email"
             value={email}
             onChange={(event) => onEmailChange(event.target.value)}
-            placeholder="you@example.com"
+            placeholder="siz@example.com"
             className="h-12 rounded-2xl bg-[var(--surface-strong)]"
             autoComplete="email"
             required
@@ -70,7 +70,7 @@ export function AuthCard({
         </label>
 
         <label className="flex flex-col gap-1.5 text-sm text-[var(--muted-foreground)]">
-          Password
+          Parol
           <Input
             type="password"
             value={password}
@@ -106,7 +106,7 @@ export function AuthCard({
             ? "Akkaunt yo'qmi? Ro'yxatdan o'tish"
             : "Akkaunt bormi? Kirish"}
         </button>
-        <span className="text-xs text-[var(--muted-foreground)]">Secure by Supabase</span>
+        <span className="text-xs text-[var(--muted-foreground)]">Supabase himoyasida</span>
       </div>
 
       {authMessage && (

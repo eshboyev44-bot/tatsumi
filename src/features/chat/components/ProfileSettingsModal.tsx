@@ -158,9 +158,9 @@ export function ProfileSettingsModal({
             className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-4"
           >
             <p className="text-sm font-medium text-[var(--foreground)]">Asosiy ma&apos;lumot</p>
-            <label className="block text-xs text-[var(--muted-foreground)]">Email</label>
+            <label className="block text-xs text-[var(--muted-foreground)]">Elektron pochta</label>
             <Input value={email} disabled className="h-11 rounded-xl bg-[var(--surface)]" />
-            <label className="block text-xs text-[var(--muted-foreground)]">Display name</label>
+            <label className="block text-xs text-[var(--muted-foreground)]">Ko&apos;rinadigan ism</label>
             <Input
               value={nameValue}
               maxLength={32}

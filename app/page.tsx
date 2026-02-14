@@ -74,7 +74,12 @@ export default function Home() {
     updateProfile,
     uploadAvatar,
   } = auth;
-  const { sendMessage, setError: setChatError, setNewMessage } = chat;
+  const {
+    clearSelectedImage: clearSelectedChatImage,
+    sendMessage,
+    setError: setChatError,
+    setNewMessage,
+  } = chat;
 
   const selectedConversation = useMemo(
     () =>
@@ -89,7 +94,7 @@ export default function Home() {
       selectedConversation?.other_user?.display_name ||
       auth.displayName.trim() ||
       auth.session?.user.email?.split("@")[0]?.trim() ||
-      "Conversation",
+      "Suhbat",
     [auth.displayName, auth.session?.user.email, selectedConversation?.other_user?.display_name]
   );
   const activeContactAvatar = selectedConversation?.other_user?.avatar_url ?? null;
@@ -106,7 +111,8 @@ export default function Home() {
     setSelectedConversationId(null);
     setChatError(null);
     setNewMessage("");
-  }, [setChatError, setNewMessage, signOut]);
+    clearSelectedChatImage();
+  }, [clearSelectedChatImage, setChatError, setNewMessage, signOut]);
 
   const handleSignOutClick = useCallback(() => {
     void handleSignOut();
@@ -166,7 +172,8 @@ export default function Home() {
     setSelectedConversationId(null);
     setChatError(null);
     setNewMessage("");
-  }, [setChatError, setNewMessage]);
+    clearSelectedChatImage();
+  }, [clearSelectedChatImage, setChatError, setNewMessage]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -213,7 +220,7 @@ export default function Home() {
         <div className="liquid-orb liquid-orb--three" />
 
         <div className="liquid-panel relative z-10 flex h-56 w-full max-w-lg items-center justify-center rounded-[2rem] text-[var(--muted-foreground)]">
-          Auth tekshirilmoqda...
+          Tizim tekshirilmoqda...
         </div>
       </main>
     );
@@ -313,7 +320,11 @@ export default function Home() {
                 newMessage={chat.newMessage}
                 remainingChars={chat.remainingChars}
                 onChange={chat.setNewMessage}
+                onClearImage={chat.clearSelectedImage}
+                onImageSelect={chat.handleImageSelect}
                 onSubmit={handleSendMessage}
+                selectedImageName={chat.selectedImageName}
+                selectedImagePreviewUrl={chat.selectedImagePreviewUrl}
               />
             </>
           ) : (

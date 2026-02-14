@@ -50,7 +50,7 @@ export function useConversations({ session }: UseConversationsParams) {
           ? {
               id: userData.id,
               email: userData.email || "",
-              display_name: userData.display_name || "Unknown",
+              display_name: userData.display_name || "Noma'lum",
               avatar_url:
                 typeof userData.avatar_url === "string" && userData.avatar_url.trim()
                   ? userData.avatar_url
@@ -81,15 +81,27 @@ export function useConversations({ session }: UseConversationsParams) {
 
           const { data: lastMessageData } = await supabase
             .from("messages")
-            .select("content")
+            .select("content, image_url")
             .eq("conversation_id", conversation.id)
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
 
+          const trimmedContent = lastMessageData?.content?.trim();
+          const hasImage =
+            typeof lastMessageData?.image_url === "string" &&
+            lastMessageData.image_url.trim().length > 0;
+
+          const text =
+            trimmedContent && trimmedContent.length > 0
+              ? trimmedContent
+              : hasImage
+                ? "Rasm yuborildi"
+                : undefined;
+
           lastMessageCacheRef.current.set(conversation.id, {
             lastMessageAt: conversation.last_message_at,
-            text: lastMessageData?.content,
+            text,
           });
         })
       );
@@ -222,7 +234,7 @@ export function useConversations({ session }: UseConversationsParams) {
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
-          setError("Suhbatlar realtime ulanishida xatolik bo'ldi.");
+          setError("Suhbatlar jonli ulanishida xatolik bo'ldi.");
         }
       });
 

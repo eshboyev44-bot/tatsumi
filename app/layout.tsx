@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tatsumi Chat",
-  description: "Realtime chat app with Next.js + Supabase + Vercel",
+  title: "Tatsumi Suhbat",
+  description: "Next.js, Supabase va Vercel asosidagi real vaqtli suhbat ilovasi",
   icons: {
     icon: '/favicon.ico',
   },

@@ -2,8 +2,10 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { RealtimeChannel, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import type { Message } from "@/features/chat/types";
+import { optimizeImageForUpload } from "@/features/chat/imageOptimization";
 import {
   MAX_FETCH_COUNT,
+  MAX_IMAGE_SIZE_BYTES,
   MAX_MESSAGE_LENGTH,
   mergeMessages,
   resolveDisplayName,
@@ -16,6 +18,21 @@ type UseChatMessagesParams = {
   conversationId: string | null;
 };
 
+const SUPPORTED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+
+function getImageExtension(fileName: string) {
+  const extension = fileName.split(".").pop()?.toLowerCase().trim();
+  if (!extension) {
+    return "jpg";
+  }
+  return extension.replace(/[^a-z0-9]/g, "") || "jpg";
+}
+
 export function useChatMessages({
   displayName,
   session,
@@ -24,9 +41,41 @@ export function useChatMessages({
   const sessionUserId = session?.user.id;
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [selectedImagePreviewUrl, setSelectedImagePreviewUrl] = useState<string | null>(null);
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const clearSelectedImage = useCallback(() => {
+    setSelectedImageFile(null);
+    setSelectedImagePreviewUrl((previousPreviewUrl) => {
+      if (previousPreviewUrl) {
+        URL.revokeObjectURL(previousPreviewUrl);
+      }
+      return null;
+    });
+  }, []);
+
+  const handleImageSelect = useCallback(
+    (file: File) => {
+      if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
+        setError("Faqat JPG, PNG, WEBP yoki GIF rasm yuborishingiz mumkin.");
+        return;
+      }
+
+      if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        setError("Rasm hajmi 8MB dan kichik bo'lishi kerak.");
+        return;
+      }
+
+      clearSelectedImage();
+      setError(null);
+      setSelectedImageFile(file);
+      setSelectedImagePreviewUrl(URL.createObjectURL(file));
+    },
+    [clearSelectedImage]
+  );
 
   const markConversationAsRead = useCallback(async () => {
     if (!sessionUserId || !conversationId) {
@@ -44,6 +93,16 @@ export function useChatMessages({
   }, [conversationId, sessionUserId]);
 
   useEffect(() => {
+    return () => {
+      clearSelectedImage();
+    };
+  }, [clearSelectedImage]);
+
+  useEffect(() => {
+    clearSelectedImage();
+  }, [clearSelectedImage, conversationId]);
+
+  useEffect(() => {
     let isMounted = true;
 
     const fetchMessages = async () => {
@@ -58,7 +117,7 @@ export function useChatMessages({
 
       const { data, error: fetchError } = await supabase
         .from("messages")
-        .select("id, created_at, user_id, username, content, conversation_id, read_at")
+        .select("id, created_at, user_id, username, content, image_url, conversation_id, read_at")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
         .limit(MAX_FETCH_COUNT);
@@ -155,7 +214,7 @@ export function useChatMessages({
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
-          setError("Realtime ulanishda xatolik bo'ldi.");
+          setError("Jonli ulanishda xatolik bo'ldi.");
         }
       });
 
@@ -179,10 +238,10 @@ export function useChatMessages({
       !!session &&
       !isSending &&
       effectiveDisplayName.length > 0 &&
-      newMessage.trim().length > 0 &&
+      (newMessage.trim().length > 0 || !!selectedImageFile) &&
       remainingChars >= 0
     );
-  }, [effectiveDisplayName, isSending, newMessage, remainingChars, session]);
+  }, [effectiveDisplayName, isSending, newMessage, remainingChars, selectedImageFile, session]);
 
   const sendMessage = useCallback(
     async (event?: FormEvent<HTMLFormElement>) => {
@@ -202,41 +261,89 @@ export function useChatMessages({
         return;
       }
 
-      const payload = {
-        user_id: session.user.id,
-        username: effectiveDisplayName,
-        content: newMessage.trim(),
-        conversation_id: conversationId,
-      };
-
       setIsSending(true);
       setError(null);
+      try {
+        const trimmedMessage = newMessage.trim();
+        let uploadedImageUrl: string | null = null;
 
-      const { error: insertError } = await supabase
-        .from("messages")
-        .insert([payload]);
+        if (selectedImageFile) {
+          let imageForUpload = selectedImageFile;
+          try {
+            imageForUpload = await optimizeImageForUpload(selectedImageFile);
+          } catch (optimizeError) {
+            console.error("Image optimization failed:", optimizeError);
+          }
 
-      if (insertError) {
-        setError(
-          `Xabar yuborishda xatolik: ${toFriendlyErrorMessage(insertError.message)}`
-        );
-      } else {
+          const imageExtension = getImageExtension(imageForUpload.name);
+          const imagePath = `${session.user.id}/${conversationId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${imageExtension}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("message-images")
+            .upload(imagePath, imageForUpload, {
+              cacheControl: "3600",
+              upsert: false,
+            });
+
+          if (uploadError) {
+            setError(`Rasm yuklashda xatolik: ${toFriendlyErrorMessage(uploadError.message)}`);
+            return;
+          }
+
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("message-images").getPublicUrl(imagePath);
+          uploadedImageUrl = `${publicUrl}?v=${Date.now()}`;
+        }
+
+        const payload = {
+          user_id: session.user.id,
+          username: effectiveDisplayName,
+          content: trimmedMessage.length > 0 ? trimmedMessage : null,
+          image_url: uploadedImageUrl,
+          conversation_id: conversationId,
+        };
+
+        const { error: insertError } = await supabase
+          .from("messages")
+          .insert([payload]);
+
+        if (insertError) {
+          setError(
+            `Xabar yuborishda xatolik: ${toFriendlyErrorMessage(insertError.message)}`
+          );
+          return;
+        }
+
         setNewMessage("");
+        clearSelectedImage();
+      } finally {
+        setIsSending(false);
       }
-
-      setIsSending(false);
     },
-    [canSend, conversationId, effectiveDisplayName, newMessage, session]
+    [
+      canSend,
+      clearSelectedImage,
+      conversationId,
+      effectiveDisplayName,
+      newMessage,
+      selectedImageFile,
+      session,
+    ]
   );
 
   return {
     canSend,
+    clearSelectedImage,
     error,
+    handleImageSelect,
     isLoadingMessages,
     isSending,
     messages,
     newMessage,
     remainingChars,
+    selectedImageName: selectedImageFile?.name ?? null,
+    selectedImagePreviewUrl,
     sendMessage,
     setError,
     setNewMessage,

@@ -3,6 +3,7 @@ import type { Message } from "@/features/chat/types";
 
 export const MAX_MESSAGE_LENGTH = 500;
 export const MAX_FETCH_COUNT = 200;
+export const MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024;
 
 export function resolveDisplayName(session: Session | null) {
   if (!session) {
@@ -19,7 +20,7 @@ export function resolveDisplayName(session: Session | null) {
     return emailPrefix.trim().slice(0, 32);
   }
 
-  return "User";
+  return "Foydalanuvchi";
 }
 
 export function resolveAvatarUrl(session: Session | null) {
@@ -56,15 +57,23 @@ export function mergeMessages(previous: Message[], incoming: Message[]) {
 
 export function toFriendlyErrorMessage(rawMessage: string) {
   if (rawMessage.includes("Could not find the 'username' column")) {
-    return "Supabase jadvalida `username` ustuni yo'q. SQL Editor ichida `supabase/schema.sql` ni qayta ishga tushiring.";
+    return "Supabase jadvalida `username` ustuni yo'q. SQL muharririda `supabase/schema.sql` ni qayta ishga tushiring.";
   }
 
   if (rawMessage.includes("Could not find the 'user_id' column")) {
-    return "Supabase jadvalida `user_id` ustuni yo'q. SQL Editor ichida `supabase/schema.sql` ni qayta ishga tushiring.";
+    return "Supabase jadvalida `user_id` ustuni yo'q. SQL muharririda `supabase/schema.sql` ni qayta ishga tushiring.";
+  }
+
+  if (rawMessage.includes("Could not find the 'image_url' column")) {
+    return "Supabase jadvalida `image_url` ustuni yo'q. SQL muharririda `supabase/migration_image_messages.sql` ni ishga tushiring.";
   }
 
   if (rawMessage.includes("new row violates row-level security policy")) {
     return "Xabar yuborish uchun login qilingan bo'lishi kerak.";
+  }
+
+  if (rawMessage.includes("Bucket not found")) {
+    return "Fayl saqlash bo'limi topilmadi. SQL muharririda `supabase/migration_image_messages.sql` ni ishga tushiring.";
   }
 
   return rawMessage;

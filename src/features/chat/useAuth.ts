@@ -44,11 +44,11 @@ function extractStoragePathFromPublicUrl(rawUrl: string | null) {
 
 function toSettingsErrorMessage(rawMessage: string) {
   if (rawMessage.includes("Bucket not found")) {
-    return "Storage bucket topilmadi. Supabase SQL Editor ichida `supabase/migration_profile_settings.sql` ni ishga tushiring.";
+    return "Fayl saqlash bo'limi topilmadi. Supabase SQL muharririda `supabase/migration_profile_settings.sql` ni ishga tushiring.";
   }
 
   if (rawMessage.includes("row-level security")) {
-    return "Storage policy ruxsati yo'q. `supabase/migration_profile_settings.sql` dagi avatar RLS policy'larni qo'llang.";
+    return "Fayl saqlash ruxsati yo'q. `supabase/migration_profile_settings.sql` dagi avatar RLS siyosatlarini qo'llang.";
   }
 
   return rawMessage;
@@ -84,7 +84,7 @@ export function useAuth() {
       }
 
       if (sessionError) {
-        setAuthMessage(`Sessionni olishda xatolik: ${sessionError.message}`);
+        setAuthMessage(`Sessiyani olishda xatolik: ${sessionError.message}`);
       }
 
       setSession(initialSession);
@@ -117,7 +117,7 @@ export function useAuth() {
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password.trim()) {
-      setAuthMessage("Email va parolni kiriting.");
+      setAuthMessage("Elektron pochta va parolni kiriting.");
       return;
     }
 
@@ -125,7 +125,7 @@ export function useAuth() {
     setAuthMessage(null);
 
     if (authMode === "signup") {
-      const signupName = displayName.trim() || trimmedEmail.split("@")[0] || "User";
+      const signupName = displayName.trim() || trimmedEmail.split("@")[0] || "Foydalanuvchi";
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: trimmedEmail,
         password,

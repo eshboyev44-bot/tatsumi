@@ -62,7 +62,7 @@ export function UserSearchModal({
                             type="email"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Email orqali qidirish..."
+                            placeholder="Elektron pochta orqali qidirish..."
                             className="h-10 flex-1 rounded-xl bg-[var(--surface-strong)]"
                             autoComplete="off"
                         />

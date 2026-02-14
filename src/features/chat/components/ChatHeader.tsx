@@ -49,7 +49,7 @@ export const ChatHeader = memo(function ChatHeader({
           <p className="truncate text-sm font-semibold text-[var(--foreground)]">
             {contactName}
           </p>
-          <p className="truncate text-xs text-[var(--muted-foreground)]">Online now</p>
+          <p className="truncate text-xs text-[var(--muted-foreground)]">Hozir onlayn</p>
         </div>
 
         <div className="flex-1" />

@@ -24,7 +24,7 @@ export const ChatListScreen = memo(function ChatListScreen({
   const conversationRows = useMemo(
     () =>
       conversations.map((conversation) => {
-        const displayName = conversation.other_user?.display_name || "Unknown";
+        const displayName = conversation.other_user?.display_name || "Noma'lum";
         const lastMessage = conversation.last_message || "Hali xabar yo'q";
         const lastTime = conversation.last_message_at
           ? new Date(conversation.last_message_at).toLocaleTimeString("uz-UZ", {
@@ -48,7 +48,7 @@ export const ChatListScreen = memo(function ChatListScreen({
     <section className="flex h-full min-h-0 flex-col bg-[var(--surface)] backdrop-blur-2xl">
       <header className="relative z-10 shrink-0 border-b border-[var(--border)] px-4 py-4">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-[var(--foreground)]">Chats</h2>
+          <h2 className="text-xl font-semibold text-[var(--foreground)]">Suhbatlar</h2>
           <div className="flex items-center gap-1">
             <Button
               type="button"

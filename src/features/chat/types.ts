@@ -3,7 +3,8 @@ export type Message = {
   created_at: string;
   user_id: string | null;
   username: string;
-  content: string;
+  content: string | null;
+  image_url: string | null;
   conversation_id: string | null;
   read_at: string | null;
 };

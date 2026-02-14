@@ -1,4 +1,4 @@
-import { FormEvent, KeyboardEvent } from "react";
+import { ChangeEvent, FormEvent, KeyboardEvent, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -8,7 +8,11 @@ type MessageComposerProps = {
   isSending: boolean;
   newMessage: string;
   remainingChars: number;
+  selectedImageName: string | null;
+  selectedImagePreviewUrl: string | null;
   onChange: (value: string) => void;
+  onClearImage: () => void;
+  onImageSelect: (file: File) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
@@ -18,9 +22,15 @@ export function MessageComposer({
   isSending,
   newMessage,
   remainingChars,
+  selectedImageName,
+  selectedImagePreviewUrl,
   onChange,
+  onClearImage,
+  onImageSelect,
   onSubmit,
 }: MessageComposerProps) {
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
   const handleTextareaKeyDown = (
     event: KeyboardEvent<HTMLTextAreaElement>
   ) => {
@@ -37,14 +47,70 @@ export function MessageComposer({
     }
   };
 
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    if (file) {
+      onImageSelect(file);
+    }
+    event.currentTarget.value = "";
+  };
+
   return (
     <footer className="liquid-topbar relative z-10 shrink-0 border-t border-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 md:border-[var(--border)] md:px-5 md:pb-4">
       <form onSubmit={onSubmit} className="space-y-2">
+        {selectedImagePreviewUrl && (
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-2">
+            <div className="flex items-center gap-3">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[var(--border)]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={selectedImagePreviewUrl}
+                  alt={selectedImageName ?? "Yuboriladigan rasm"}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-[var(--foreground)]">
+                  {selectedImageName ?? "Rasm tanlandi"}
+                </p>
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  Yuborishdan oldin o&apos;chirishingiz mumkin
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={onClearImage}
+                className="size-9 rounded-full text-[var(--muted-foreground)]"
+                aria-label="Rasmni olib tashlash"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="size-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-end gap-2 overflow-hidden rounded-[1.4rem] border border-[var(--border)] bg-[var(--surface-strong)] p-2 shadow-none md:shadow-[0_12px_30px_rgba(56,72,96,0.16)] md:backdrop-blur-2xl">
           <Button
             type="button"
             variant="ghost"
             size="icon"
+            onClick={() => imageInputRef.current?.click()}
             className="size-9 rounded-full text-[var(--muted-foreground)]"
             aria-label="Qo'shimcha"
           >
@@ -62,6 +128,13 @@ export function MessageComposer({
               <path d="M5 12h14" />
             </svg>
           </Button>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={handleImageChange}
+            className="hidden"
+          />
 
           <Textarea
             value={newMessage}
