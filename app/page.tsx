@@ -186,7 +186,6 @@ export default function Home() {
 
   return (
     <main className="relative min-h-dvh overflow-hidden px-0 md:px-6">
-      <ThemeToggle onToggle={toggleTheme} />
       <div className="liquid-orb liquid-orb--one" />
       <div className="liquid-orb liquid-orb--two" />
       <div className="liquid-orb liquid-orb--three" />
@@ -219,6 +218,7 @@ export default function Home() {
           <ChatHeader
             contactName={activeContactName}
             onBack={() => setView("chats")}
+            onToggleTheme={toggleTheme}
           />
 
           <MessageList
