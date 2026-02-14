@@ -161,6 +161,50 @@ export default function Home() {
     [sendMessage]
   );
 
+  const handleLeaveConversation = useCallback(() => {
+    setView("chats");
+    setSelectedConversationId(null);
+    setChatError(null);
+    setNewMessage("");
+  }, [setChatError, setNewMessage]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (isProfileModalOpen) {
+        handleCloseProfileModal();
+        return;
+      }
+
+      if (isSearchModalOpen) {
+        handleCloseSearchModal();
+        return;
+      }
+
+      if (!selectedConversationId) {
+        return;
+      }
+
+      event.preventDefault();
+      handleLeaveConversation();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [
+    handleCloseProfileModal,
+    handleCloseSearchModal,
+    handleLeaveConversation,
+    isProfileModalOpen,
+    isSearchModalOpen,
+    selectedConversationId,
+  ]);
+
   if (auth.isAuthLoading) {
     return (
       <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-8">
