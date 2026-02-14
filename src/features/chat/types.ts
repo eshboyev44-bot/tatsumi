@@ -5,6 +5,7 @@ export type Message = {
   username: string;
   content: string;
   conversation_id: string | null;
+  read_at: string | null;
 };
 
 export type Conversation = {

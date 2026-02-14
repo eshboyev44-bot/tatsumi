@@ -39,7 +39,7 @@ export function useChatMessages({
 
       const { data, error: fetchError } = await supabase
         .from("messages")
-        .select("id, created_at, user_id, username, content, conversation_id")
+        .select("id, created_at, user_id, username, content, conversation_id, read_at")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
         .limit(MAX_FETCH_COUNT);
@@ -54,6 +54,14 @@ export function useChatMessages({
         );
       } else {
         setMessages(data ?? []);
+
+        // Auto-mark messages as read when conversation is opened
+        if (session?.user?.id && conversationId) {
+          void supabase.rpc("mark_messages_as_read", {
+            p_conversation_id: conversationId,
+            p_user_id: session.user.id,
+          });
+        }
       }
 
       setIsLoadingMessages(false);
@@ -80,6 +88,23 @@ export function useChatMessages({
         (payload) => {
           const incomingMessage = payload.new as Message;
           setMessages((previous) => mergeMessages(previous, [incomingMessage]));
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const updatedMessage = payload.new as Message;
+          setMessages((previous) =>
+            previous.map((msg) =>
+              msg.id === updatedMessage.id ? updatedMessage : msg
+            )
+          );
         }
       )
       .subscribe((status) => {

@@ -185,15 +185,15 @@ export default function Home() {
   }
 
   return (
-    <main className="relative min-h-dvh overflow-hidden px-3 md:px-6">
+    <main className="relative min-h-dvh overflow-hidden px-0 md:px-6">
       <ThemeToggle onToggle={toggleTheme} />
       <div className="liquid-orb liquid-orb--one" />
       <div className="liquid-orb liquid-orb--two" />
       <div className="liquid-orb liquid-orb--three" />
 
-      <section className="liquid-shell relative z-10 mx-auto flex h-[100svh] w-full max-w-6xl overflow-hidden rounded-[2rem]">
+      <section className="liquid-shell relative z-10 mx-auto flex h-[100svh] w-full max-w-6xl overflow-hidden rounded-none md:rounded-[2rem]">
         <aside
-          className={`min-h-0 border-[var(--border)] md:w-[340px] md:shrink-0 md:border-r ${view === "chat" ? "hidden md:flex" : "flex"
+          className={`w-full min-h-0 border-[var(--border)] md:w-[340px] md:shrink-0 md:border-r ${view === "chat" ? "hidden md:flex" : "flex"
             } flex-col`}
         >
           <ChatListScreen

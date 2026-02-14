@@ -31,7 +31,7 @@ export function AuthCard({
   onToggleMode,
 }: AuthCardProps) {
   return (
-    <section className="liquid-panel relative z-10 w-full max-w-[460px] rounded-[2rem] p-6 md:p-8">
+    <section className="liquid-panel relative z-10 w-full max-w-[460px] rounded-[2rem] p-5 md:p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted-foreground)]">
         Liquid Chat
       </p>
@@ -96,7 +96,7 @@ export function AuthCard({
         </Button>
       </form>
 
-      <div className="mt-5 flex items-center justify-between gap-3">
+      <div className="mt-5 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           onClick={onToggleMode}

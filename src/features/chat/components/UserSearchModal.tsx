@@ -28,9 +28,9 @@ export function UserSearchModal({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="liquid-panel relative w-full max-w-md rounded-2xl p-6">
-                <div className="mb-4 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 p-0 md:p-4">
+            <div className="liquid-panel relative w-full h-full md:h-auto max-h-screen md:max-w-md rounded-none md:rounded-2xl p-6 flex flex-col">
+                <div className="mb-4 flex items-center justify-between shrink-0">
                     <h2 className="text-xl font-semibold text-[var(--foreground)]">
                         Yangi suhbat boshlash
                     </h2>
@@ -79,7 +79,7 @@ export function UserSearchModal({
                     <p className="mb-3 text-sm text-red-500">{error}</p>
                 )}
 
-                <div className="max-h-96 space-y-2 overflow-y-auto">
+                <div className="flex-1 min-h-0 space-y-2 overflow-y-auto">
                     {users.length === 0 && searchQuery && !isSearching && (
                         <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">
                             Foydalanuvchi topilmadi

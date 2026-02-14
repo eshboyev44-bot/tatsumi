@@ -28,9 +28,24 @@ export function ChatListScreen({
             variant="ghost"
             size="sm"
             onClick={onSignOut}
-            className="rounded-full px-3 text-[var(--muted-foreground)]"
+            className="rounded-full px-2 md:px-3 text-[var(--muted-foreground)]"
+            title="Chiqish"
           >
-            Chiqish
+            <svg
+              className="size-5 md:hidden"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
+            <span className="hidden md:inline">Chiqish</span>
           </Button>
         </div>
 

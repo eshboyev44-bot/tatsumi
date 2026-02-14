@@ -79,11 +79,10 @@ export function MessageList({
               className={`message-pop flex ${isMine ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`message-bubble max-w-[86%] rounded-2xl px-3.5 py-2.5 md:max-w-[70%] ${
-                  isMine
+                className={`message-bubble max-w-[86%] rounded-2xl px-3.5 py-2.5 md:max-w-[70%] ${isMine
                     ? "message-bubble--mine rounded-br-md"
                     : "message-bubble--theirs rounded-bl-md"
-                }`}
+                  }`}
               >
                 <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[var(--foreground)]">
                   {message.content}
@@ -92,19 +91,36 @@ export function MessageList({
                 <div className="mt-1.5 flex items-center justify-end gap-1 text-[11px] text-[var(--muted-foreground)]">
                   <span>{time}</span>
                   {isMine && (
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="h-3.5 w-3.5 text-[#0a9ef5]"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 12l5 5L21 4" />
-                      <path d="M10 12l5 5L21 11" />
-                    </svg>
+                    message.read_at ? (
+                      // Double checkmark - message read
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="h-3.5 w-3.5 text-[#0a9ef5]"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 12l5 5L21 4" />
+                        <path d="M10 12l5 5L21 11" />
+                      </svg>
+                    ) : (
+                      // Single checkmark - message sent
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="h-3.5 w-3.5 text-[var(--muted-foreground)]"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M5 12l5 5L20 7" />
+                      </svg>
+                    )
                   )}
                 </div>
               </div>
