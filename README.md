@@ -40,6 +40,21 @@ npm run dev
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 4. Deploy qiling.
 
+## 3.1 PWA (Installable Web App)
+
+PWA qo'shildi:
+- `public/manifest.webmanifest`
+- `public/sw.js`
+- `public/icons/*`
+- `src/components/PwaRegister.tsx`
+
+Ishlatish:
+1. Productionda oching (`vercel` yoki `npm run build && npm run start`).
+2. Browser menyusidan `Install app` / `Add to Home Screen` tanlang.
+3. Telefonlarda app kabi icon chiqadi va standalone rejimda ochiladi.
+
+Eslatma: service worker faqat productionda ro'yxatdan o'tadi.
+
 ## 4. Mobil (Expo iOS)
 
 Repo ichida `mobile/` papka boshlang'ich React Native Expo ilovasi sifatida qo'shildi.

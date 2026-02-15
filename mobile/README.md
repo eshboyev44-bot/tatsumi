@@ -46,3 +46,43 @@ npm run start:tunnel
 - Typing indicator
 - Reply, image upload
 - Push notifications (expo-notifications)
+
+## 6) Push notification sozlash
+
+`mobile/.env` ichiga Expo project id qo'shing:
+
+```bash
+EXPO_PUBLIC_EXPO_PROJECT_ID=...
+```
+
+Supabase SQL editor’da quyini ishga tushiring:
+
+- `supabase/migration_push_notifications.sql`
+
+Edge function deploy qiling:
+
+```bash
+supabase functions deploy send-push-notification
+```
+
+Push function uchun secretlar:
+
+```bash
+supabase secrets set SERVICE_ROLE_KEY=...
+```
+
+## 7) iOS build (EAS)
+
+`mobile` ichida:
+
+```bash
+npm install
+npx eas-cli@latest login
+npx eas-cli@latest build --platform ios --profile preview
+```
+
+Agar App Store uchun release build kerak bo'lsa:
+
+```bash
+npx eas-cli@latest build --platform ios --profile production
+```

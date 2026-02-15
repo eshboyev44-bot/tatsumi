@@ -155,7 +155,7 @@ export default function HomeScreen() {
 
       {!!conversations.error && <Text style={styles.error}>{conversations.error}</Text>}
 
-      {conversations.isLoading ? (
+      {conversations.isLoading && conversations.conversations.length === 0 ? (
         <View style={styles.centered}>
           <ActivityIndicator color="#7db9ff" />
         </View>

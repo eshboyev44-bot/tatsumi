@@ -10,6 +10,7 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 import { useOwnPresenceHeartbeat } from "../chat/useUserPresence";
+import { usePushNotifications } from "../notifications/usePushNotifications";
 
 type SessionContextValue = {
   session: Session | null;
@@ -39,6 +40,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useOwnPresenceHeartbeat(session);
+  usePushNotifications(session);
 
   useEffect(() => {
     let isMounted = true;

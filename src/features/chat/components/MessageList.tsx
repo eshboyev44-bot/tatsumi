@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Message } from "@/features/chat/types";
+import { supabase } from "@/lib/supabaseClient";
 
 type MessageListProps = {
   currentUserId: string;
@@ -23,6 +24,23 @@ function formatDayChip(dateString: string) {
     month: "short",
     day: "numeric",
   });
+}
+
+function resolveMessageImageUrl(imageValue: string) {
+  const trimmed = imageValue.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("message-images").getPublicUrl(trimmed);
+
+  return publicUrl || null;
 }
 
 export const MessageList = memo(function MessageList({
@@ -157,7 +175,10 @@ export const MessageList = memo(function MessageList({
               typeof message.content === "string" && message.content.trim().length > 0;
             const hasImage =
               typeof message.image_url === "string" && message.image_url.trim().length > 0;
-            const imageUrl = hasImage ? message.image_url?.trim() ?? null : null;
+            const imageUrl =
+              hasImage && message.image_url
+                ? resolveMessageImageUrl(message.image_url)
+                : null;
             const repliedMessage =
               typeof message.reply_to_id === "number"
                 ? messagesById.get(message.reply_to_id) ?? null

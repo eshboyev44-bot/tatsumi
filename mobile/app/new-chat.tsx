@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
   FlatList,
@@ -65,7 +66,7 @@ export default function NewChatScreen() {
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, pressed && styles.pressed]}>
-          <Text style={styles.backText}>{"<"}</Text>
+          <Ionicons name="chevron-back" size={22} color="#dbeaff" />
         </Pressable>
         <Text style={styles.headerTitle}>Yangi suhbat</Text>
       </View>
@@ -167,12 +168,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#122846",
     alignItems: "center",
     justifyContent: "center",
-  },
-  backText: {
-    color: "#dbeaff",
-    fontSize: 20,
-    fontWeight: "700",
-    marginTop: -1,
   },
   headerTitle: {
     color: "#e7f0ff",

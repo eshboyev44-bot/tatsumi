@@ -496,10 +496,7 @@ export function useChatMessages({
             return;
           }
 
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("message-images").getPublicUrl(imagePath);
-          uploadedImageUrl = `${publicUrl}?v=${Date.now()}`;
+          uploadedImageUrl = imagePath;
         }
 
         const payload = {

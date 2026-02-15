@@ -7,6 +7,17 @@ type UseConversationsParams = {
   session: Session | null;
 };
 
+const CONVERSATIONS_SYNC_INTERVAL_MS = 15_000;
+
+type RealtimeMessageRow = {
+  conversation_id: string | null;
+  user_id: string | null;
+  content: string | null;
+  image_url: string | null;
+  created_at: string | null;
+  read_at: string | null;
+};
+
 function getOtherUserId(conversation: Conversation, currentUserId: string) {
   return conversation.user1_id === currentUserId
     ? conversation.user2_id
@@ -29,12 +40,32 @@ function resolveMessagePreview(message: {
   return "";
 }
 
+function moveConversationToTop(
+  previous: Conversation[],
+  conversationId: string,
+  updater: (conversation: Conversation) => Conversation
+) {
+  const index = previous.findIndex((conversation) => conversation.id === conversationId);
+  if (index < 0) {
+    return previous;
+  }
+
+  const updatedConversation = updater(previous[index]);
+  const next = [...previous];
+  next.splice(index, 1);
+  next.unshift(updatedConversation);
+  return next;
+}
+
 export function useConversations({ session }: UseConversationsParams) {
   const sessionUserId = session?.user.id ?? null;
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const hasLoadedRef = useRef(false);
+  const requestIdRef = useRef(0);
+  const previousSessionUserIdRef = useRef<string | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchUnreadCounts = useCallback(
@@ -74,6 +105,12 @@ export function useConversations({ session }: UseConversationsParams) {
   );
 
   const fetchConversations = useCallback(async () => {
+    if (previousSessionUserIdRef.current !== sessionUserId) {
+      previousSessionUserIdRef.current = sessionUserId;
+      hasLoadedRef.current = false;
+      requestIdRef.current += 1;
+    }
+
     if (!sessionUserId) {
       setConversations([]);
       setError(null);
@@ -81,7 +118,10 @@ export function useConversations({ session }: UseConversationsParams) {
       return;
     }
 
-    setIsLoading(true);
+    const requestId = ++requestIdRef.current;
+    if (!hasLoadedRef.current) {
+      setIsLoading(true);
+    }
 
     const { data, error: fetchError } = await supabase
       .from("conversations")
@@ -89,9 +129,15 @@ export function useConversations({ session }: UseConversationsParams) {
       .or(`user1_id.eq.${sessionUserId},user2_id.eq.${sessionUserId}`)
       .order("last_message_at", { ascending: false, nullsFirst: false });
 
+    if (requestId !== requestIdRef.current) {
+      return;
+    }
+
     if (fetchError) {
       setError(fetchError.message);
-      setIsLoading(false);
+      if (!hasLoadedRef.current) {
+        setIsLoading(false);
+      }
       return;
     }
 
@@ -141,6 +187,11 @@ export function useConversations({ session }: UseConversationsParams) {
       unread_count: unreadCounts.get(conversation.id) ?? 0,
     }));
 
+    if (requestId !== requestIdRef.current) {
+      return;
+    }
+
+    hasLoadedRef.current = true;
     setConversations(hydrated);
     setError(null);
     setIsLoading(false);
@@ -155,6 +206,20 @@ export function useConversations({ session }: UseConversationsParams) {
       clearTimeout(timerId);
     };
   }, [fetchConversations]);
+
+  useEffect(() => {
+    if (!sessionUserId) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      void fetchConversations();
+    }, CONVERSATIONS_SYNC_INTERVAL_MS);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [fetchConversations, sessionUserId]);
 
   useEffect(() => {
     if (!sessionUserId) {
@@ -204,13 +269,117 @@ export function useConversations({ session }: UseConversationsParams) {
           schema: "public",
           table: "messages",
         },
-        () => {
+        (payload) => {
+          const nextMessage = payload.new as Partial<RealtimeMessageRow> | null;
+          const prevMessage = payload.old as Partial<RealtimeMessageRow> | null;
+
+          const nextConversationId =
+            typeof nextMessage?.conversation_id === "string"
+              ? nextMessage.conversation_id
+              : null;
+          const prevConversationId =
+            typeof prevMessage?.conversation_id === "string"
+              ? prevMessage.conversation_id
+              : null;
+          const targetConversationId = nextConversationId ?? prevConversationId;
+
+          if (!targetConversationId) {
+            return;
+          }
+
+          if (payload.eventType === "INSERT" && nextConversationId) {
+            const nextContent =
+              typeof nextMessage?.content === "string" ? nextMessage.content : null;
+            const nextImageUrl =
+              typeof nextMessage?.image_url === "string" ? nextMessage.image_url : null;
+            const previewText = resolveMessagePreview({
+              content: nextContent,
+              image_url: nextImageUrl,
+            });
+            const senderUserId =
+              typeof nextMessage?.user_id === "string" ? nextMessage.user_id : null;
+            const isUnreadForMe =
+              !!senderUserId &&
+              senderUserId !== sessionUserId &&
+              (nextMessage?.read_at ?? null) === null;
+            const createdAt =
+              typeof nextMessage?.created_at === "string"
+                ? nextMessage.created_at
+                : null;
+
+            setConversations((previous) =>
+              moveConversationToTop(previous, nextConversationId, (conversation) => ({
+                ...conversation,
+                last_message: previewText || conversation.last_message,
+                last_message_at: createdAt ?? conversation.last_message_at,
+                unread_count: isUnreadForMe
+                  ? (conversation.unread_count ?? 0) + 1
+                  : conversation.unread_count ?? 0,
+              }))
+            );
+            return;
+          }
+
+          if (payload.eventType === "UPDATE") {
+            const senderUserIdRaw = nextMessage?.user_id ?? prevMessage?.user_id;
+            const senderUserId =
+              typeof senderUserIdRaw === "string" ? senderUserIdRaw : null;
+
+            if (!senderUserId || senderUserId === sessionUserId) {
+              return;
+            }
+
+            const prevReadAt = prevMessage?.read_at ?? null;
+            const nextReadAt = nextMessage?.read_at ?? null;
+            let unreadDelta = 0;
+
+            if (prevReadAt === null && typeof nextReadAt === "string" && nextReadAt.length > 0) {
+              unreadDelta = -1;
+            } else if (
+              typeof prevReadAt === "string" &&
+              prevReadAt.length > 0 &&
+              nextReadAt === null
+            ) {
+              unreadDelta = 1;
+            }
+
+            if (unreadDelta !== 0) {
+              setConversations((previous) =>
+                previous.map((conversation) => {
+                  if (conversation.id !== targetConversationId) {
+                    return conversation;
+                  }
+
+                  return {
+                    ...conversation,
+                    unread_count: Math.max(0, (conversation.unread_count ?? 0) + unreadDelta),
+                  };
+                })
+              );
+            }
+            return;
+          }
+
           scheduleRefresh();
         }
       )
       .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          setError((previous) =>
+            previous?.includes("Realtime") ? null : previous
+          );
+          return;
+        }
+
         if (status === "CHANNEL_ERROR") {
-          setError("Realtime ulanishda xatolik.");
+          console.warn("Conversations realtime status changed:", status);
+          scheduleRefresh();
+          return;
+        }
+
+        if (status === "TIMED_OUT" || status === "CLOSED") {
+          console.warn("Conversations realtime status changed:", status);
+          scheduleRefresh();
         }
       });
 

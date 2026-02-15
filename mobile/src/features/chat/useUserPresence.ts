@@ -30,6 +30,16 @@ const initialPresenceState: UserPresenceState = {
   lastSeenAt: null,
 };
 
+function isExpectedAuthPresenceError(message: string) {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("not authenticated") ||
+    normalized.includes("auth session missing") ||
+    normalized.includes("jwt") ||
+    normalized.includes("token")
+  );
+}
+
 function isRecentlyActive(lastActiveAt: string | null) {
   if (!lastActiveAt) {
     return false;
@@ -106,6 +116,9 @@ export function useOwnPresenceHeartbeat(session: Session | null) {
       });
 
       if (error) {
+        if (isExpectedAuthPresenceError(error.message)) {
+          return;
+        }
         console.error("touch_user_presence failed:", error.message);
       }
     };

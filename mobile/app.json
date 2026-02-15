@@ -6,10 +6,19 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "assetBundlePatterns": ["**/*"],
-    "plugins": ["expo-router"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-router",
+      "expo-notifications"
+    ],
     "ios": {
       "supportsTablet": true,
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "Yangi xabarlar haqida bildirishnomalar yuborish uchun ruxsat kerak.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
       "bundleIdentifier": "com.tatsumi.chat"
     },
     "android": {
@@ -17,6 +26,13 @@
     },
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7cc88329-df23-49f8-a338-2df7c6df564a"
+      }
+    },
+    "owner": "farrux4402"
   }
 }
